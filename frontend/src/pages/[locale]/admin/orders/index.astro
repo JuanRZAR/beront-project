@@ -1,0 +1,158 @@
+---
+import Layout from "../../../../shared/layouts/AdminLayout.astro";
+import { isLocale, translate } from "../../../../shared/i18n";
+const locale = Astro.params.locale;
+if (!isLocale(locale)) return new Response(null, { status: 404 });
+const t = translate(locale);
+---
+
+<Layout locale={locale} title={t("ordersTitle")} active="orders">
+  <div class="page-heading">
+    <div>
+      <h1>{t("ordersTitle")}</h1>
+      <p>{t("ordersIntro")}</p>
+    </div>
+  </div>
+  <div class="gallery-tools">
+    <label class="commerce-field">
+      <span>{t("searchOrder")}</span>
+      <input
+        id="order-search"
+        type="search"
+        maxlength="100"
+        placeholder={t("searchOrderHelp")}
+      />
+    </label>
+    <label class="commerce-field">
+      <span>{t("statusFilter")}</span>
+      <select id="order-filter"></select>
+    </label>
+  </div>
+  <p class="notice" id="orders-error" role="alert" tabindex="-1" hidden></p>
+  <div class="order-admin-grid">
+    <section class="commerce-config-panel">
+      <h2>{t("ordersTitle")}</h2>
+      <p id="orders-count" class="commerce-note" role="status"></p>
+      <ul id="order-list" class="commerce-rows order-list"></ul>
+      <nav class="media-pager" aria-label={t("page")}>
+        <button
+          class="commerce-button secondary"
+          id="orders-prev"
+          type="button"
+        >
+          {t("previous")}
+        </button>
+        <span id="orders-page"></span>
+        <button
+          class="commerce-button secondary"
+          id="orders-next"
+          type="button"
+        >
+          {t("next")}
+        </button>
+      </nav>
+    </section>
+    <div>
+      <p id="order-placeholder" class="commerce-note">
+        {t("selectOrder")}
+      </p>
+      <div id="order-detail" hidden>
+        <section class="commerce-config-panel">
+          <h2>{t("orderDetail")}</h2>
+          <p>
+            <strong id="detail-code"></strong>
+          </p>
+          <p class="commerce-note" id="detail-date"></p>
+          <div class="detail-grid">
+            <section>
+              <strong>{t("customer")}</strong>
+              <p id="detail-customer"></p>
+              <p id="detail-contact"></p>
+            </section>
+            <section>
+              <strong>{t("delivery")}</strong>
+              <p id="detail-delivery"></p>
+              <p id="detail-method"></p>
+            </section>
+          </div>
+          <ul id="detail-lines" class="purchase-lines"></ul>
+          <dl class="purchase-totals">
+            <div>
+              <dt>{t("subtotal")}</dt>
+              <dd id="detail-subtotal"></dd>
+            </div>
+            <div>
+              <dt>{t("shipping")}</dt>
+              <dd id="detail-shipping"></dd>
+            </div>
+            <div class="total">
+              <dt>Total</dt>
+              <dd id="detail-total"></dd>
+            </div>
+          </dl>
+          <h2>{t("receipts")}</h2>
+          <p class="commerce-note">{t("receiptsPrivate")}</p>
+          <div class="media-preview" id="detail-receipts"></div>
+          <label class="commerce-button secondary" id="receipt-label">
+            <span>{t("addCorrectedReceipt")}</span>
+            <input
+              id="receipt-upload"
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              class="visually-hidden"
+            />
+          </label>
+        </section>
+        <section class="commerce-config-panel">
+          <h2>{t("paymentTracking")}</h2>
+          <span id="detail-status" class="order-phase"></span>
+          <div class="order-explanation">
+            <strong>{t("inventoryMovement")}</strong>
+            <p>{t("inventoryMovementNote")}</p>
+          </div>
+          <button
+            class="commerce-button full"
+            id="approve-payment"
+            type="button"
+          >
+            {t("verifyPayment")}
+          </button>
+          <div class="commerce-actions">
+            <button class="text-button" id="cancel-order" type="button">
+              {t("cancelUnconfirmed")}
+            </button>
+          </div>
+          <hr />
+          <form id="shipping-form">
+            <label class="commerce-field" id="guide-field">
+              <span>{t("waybillNumber")}</span>
+              <input name="guide" maxlength="100" />
+            </label>
+            <label class="commerce-field" id="tracking-field">
+              <span>{t("trackingNumber")}</span>
+              <input name="tracking" maxlength="100" />
+            </label>
+            <label class="commerce-field">
+              <span>{t("newStatus")}</span>
+              <select id="next-status" name="status"></select>
+            </label>
+            <button class="commerce-button secondary full">
+              {t("updateOrder")}
+            </button>
+            <p
+              class="notice"
+              data-form-error
+              role="alert"
+              tabindex="-1"
+              hidden
+            ></p>
+          </form>
+          <p id="order-message" class="form-status" role="status"></p>
+        </section>
+      </div>
+    </div>
+  </div>
+</Layout>
+<script>
+  import "../../../../features/orders/admin";
+</script>

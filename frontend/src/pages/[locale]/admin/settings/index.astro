@@ -1,0 +1,312 @@
+---
+import Layout from "../../../../shared/layouts/AdminLayout.astro";
+import { isLocale, translate } from "../../../../shared/i18n";
+const locale = Astro.params.locale;
+if (!isLocale(locale)) return new Response(null, { status: 404 });
+const t = translate(locale);
+const options = [
+  ["categories", "tabCategories", "categoriesTitle", "categoriesNote"],
+  ["audiences", "tabGender", "genderTitle", "genderNote"],
+  ["accords", "tabAccords", "accordsTitle", "accordsNote"],
+  ["usages", "tabUsages", "usagesTitle", "usagesNote"],
+  ["profiles", "tabProfiles", "profilesTitle", "profilesNote"],
+] as const;
+const tabs = [
+  ...options.map(([key, label]) => [key, label] as const),
+  ["presentations", "tabPresentations"],
+  ["delivery", "tabDelivery"],
+  ["banks", "tabBanks"],
+  ["flow", "tabStatuses"],
+] as const;
+---
+
+<Layout locale={locale} title={t("settingsTitle")} active="settings">
+  <div class="page-heading">
+    <div>
+      <h1>{t("settingsTitle")}</h1>
+      <p>{t("settingsIntro")}</p>
+    </div>
+  </div>
+  <div class="commerce-tabs" role="tablist" aria-label={t("settingsTitle")}>
+    {tabs.map(([key, label], index) => (
+      <button
+        type="button"
+        role="tab"
+        id={`tab-${key}`}
+        data-tab={key}
+        aria-controls={`panel-${key}`}
+        aria-selected={index === 0 ? "true" : "false"}
+        tabindex={index === 0 ? 0 : -1}
+      >
+        {t(label)}
+      </button>
+    ))}
+  </div>
+  <p id="settings-status" class="form-status" role="status"></p>
+  <p class="notice" id="settings-error" role="alert" tabindex="-1" hidden></p>
+  {options.map(([key, , title, note], index) => (
+    <section
+      id={`panel-${key}`}
+      role="tabpanel"
+      aria-labelledby={`tab-${key}`}
+      hidden={index !== 0}
+    >
+      <div class="commerce-config-grid">
+        <section class="commerce-config-panel">
+          <h2>{t(title)}</h2>
+          <p class="commerce-note">{t(note)}</p>
+          <ul id={`list-${key}`} class="commerce-rows" />
+        </section>
+        <form
+          class="commerce-config-panel"
+          id={`form-${key}`}
+          data-resource={key}
+        >
+          <h2>{t("addOrEdit")}</h2>
+          <label class="commerce-field">
+            <span>{t("nameEs")}</span>
+            <input name="name_es" required maxlength="100" />
+          </label>
+          <label class="commerce-field">
+            <span>{t("nameEn")}</span>
+            <input name="name_en" required maxlength="100" />
+          </label>
+          <button class="commerce-button">{t("saveOption")}</button>
+          <p class="notice" data-form-error role="alert" tabindex="-1" hidden />
+        </form>
+      </div>
+      {key === "categories" && (
+        <form id="brand-form" class="commerce-config-panel">
+          <h2>{t("brandCategoryTitle")}</h2>
+          <div class="commerce-config-grid">
+            <label class="commerce-field">
+              <span>{t("brand")}</span>
+              <select id="settings-brand" />
+            </label>
+            <label class="commerce-field">
+              <span>{t("brandCategory")}</span>
+              <select id="settings-brand-category" />
+            </label>
+          </div>
+          <button class="commerce-button">{t("saveBrandCategory")}</button>
+          <p class="notice" data-form-error role="alert" tabindex="-1" hidden />
+        </form>
+      )}
+    </section>
+  ))}
+  <section
+    id="panel-presentations"
+    role="tabpanel"
+    aria-labelledby="tab-presentations"
+    hidden
+  >
+    <div class="commerce-config-grid">
+      <section class="commerce-config-panel">
+        <h2>{t("presentationsTitle")}</h2>
+        <ul id="list-presentations" class="commerce-rows"></ul>
+      </section>
+      <form class="commerce-config-panel" id="form-presentations">
+        <h2>{t("addPresentation")}</h2>
+        <label class="commerce-field">
+          <span>{t("inventoryType")}</span>
+          <select name="kind">
+            <option value="decant">Decant</option>
+            <option value="full_bottle">{t("fullBottle")}</option>
+          </select>
+        </label>
+        <label class="commerce-field">
+          <span>{t("volumeMl")}</span>
+          <input
+            name="volume_ml"
+            type="number"
+            min="0.01"
+            step="0.01"
+            required
+          />
+        </label>
+        <label class="commerce-field">
+          <span>{t("nameEs")}</span>
+          <input name="name_es" required maxlength="100" />
+        </label>
+        <label class="commerce-field">
+          <span>{t("nameEn")}</span>
+          <input name="name_en" required maxlength="100" />
+        </label>
+        <button class="commerce-button">{t("addPresentation")}</button>
+        <p class="commerce-note" style="margin-top: 20px">
+          {t("presentationNote")}
+        </p>
+        <p class="notice" data-form-error role="alert" tabindex="-1" hidden></p>
+      </form>
+    </div>
+  </section>
+  <section
+    id="panel-delivery"
+    role="tabpanel"
+    aria-labelledby="tab-delivery"
+    hidden
+  >
+    <div class="commerce-config-grid">
+      <form class="commerce-config-panel" id="destination-form">
+        <h2>{t("destinationsTitle")}</h2>
+        <label class="commerce-field">
+          <span>{t("province")}</span>
+          <input
+            name="province"
+            required
+            maxlength="100"
+            list="province-options"
+            autocomplete="off"
+          />
+          <datalist id="province-options"></datalist>
+        </label>
+        <label class="commerce-field" id="province-code-field" hidden>
+          <span>{t("provinceCode")}</span>
+          <input
+            name="province_code"
+            pattern="[0-9]{2}"
+            maxlength="2"
+            inputmode="numeric"
+          />
+          <small>{t("provinceCodeHelp")}</small>
+        </label>
+        <label class="commerce-field">
+          <span>{t("city")}</span>
+          <input name="city" required maxlength="100" />
+        </label>
+        <label class="commerce-field">
+          <span>{t("servientregaFee")}</span>
+          <input name="fee" type="number" min="0" step="0.01" required />
+        </label>
+        <button class="commerce-button">{t("saveDestination")}</button>
+        <p class="commerce-note" style="margin-top: 20px">
+          {t("destinationNote")}
+        </p>
+        <p class="notice" data-form-error role="alert" tabindex="-1" hidden></p>
+      </form>
+      <section class="commerce-config-panel">
+        <h2>{t("configuredCities")}</h2>
+        <ul id="list-cities" class="commerce-rows"></ul>
+      </section>
+    </div>
+  </section>
+  <section id="panel-banks" role="tabpanel" aria-labelledby="tab-banks" hidden>
+    <div class="commerce-config-grid">
+      <form id="bank-form" class="commerce-config-panel">
+        <h2>{t("bankAccount")}</h2>
+        <label class="commerce-field">
+          <span>{t("bank")}</span>
+          <input name="bank_name" required maxlength="100" />
+        </label>
+        <label class="commerce-field">
+          <span>{t("accountType")}</span>
+          <input name="account_type" required maxlength="80" />
+        </label>
+        <label class="commerce-field">
+          <span>{t("accountNumber")}</span>
+          <input name="account_number" required maxlength="60" />
+        </label>
+        <label class="commerce-field">
+          <span>{t("holder")}</span>
+          <input name="holder_name" required maxlength="160" />
+        </label>
+        <label class="commerce-field">
+          <span>{t("holderIdentification")}</span>
+          <input name="holder_identification" required maxlength="30" />
+        </label>
+        <button class="commerce-button">{t("addAccount")}</button>
+        <ul id="list-banks" class="commerce-rows" style="margin-top: 20px"></ul>
+        <p class="notice" data-form-error role="alert" tabindex="-1" hidden></p>
+      </form>
+      <form id="contact-form" class="commerce-config-panel">
+        <h2>{t("contactTerms")}</h2>
+        <label class="commerce-field">
+          <span>{t("businessWhatsApp")}</span>
+          <input
+            name="whatsapp_number"
+            type="tel"
+            inputmode="numeric"
+            pattern="([1-9][0-9]{7,14})?"
+            maxlength="15"
+            placeholder={t("whatsappPlaceholder")}
+          />
+        </label>
+        <label class="commerce-field">
+          <span>{t("termsEs")}</span>
+          <textarea name="terms_es" maxlength="20000"></textarea>
+        </label>
+        <label class="commerce-field">
+          <span>{t("termsEn")}</span>
+          <textarea name="terms_en" maxlength="20000"></textarea>
+        </label>
+        <button class="commerce-button">{t("saveSettings")}</button>
+        <p class="notice" data-form-error role="alert" tabindex="-1" hidden></p>
+      </form>
+    </div>
+  </section>
+  <section id="panel-flow" role="tabpanel" aria-labelledby="tab-flow" hidden>
+    <div class="commerce-config-grid">
+      <section class="commerce-config-panel">
+        <h2>{t("orderStatuses")}</h2>
+        <ul id="list-statuses" class="commerce-rows"></ul>
+        <form id="status-form" style="margin-top: 24px">
+          <label class="commerce-field">
+            <span>{t("nameEs")}</span>
+            <input name="name_es" required maxlength="100" />
+          </label>
+          <label class="commerce-field">
+            <span>{t("nameEn")}</span>
+            <input name="name_en" required maxlength="100" />
+          </label>
+          <label class="commerce-field">
+            <span>{t("statusMeaning")}</span>
+            <select name="phase">
+              <option value="awaiting_payment">{t("phaseAwaiting")}</option>
+              <option value="paid">{t("phasePaid")}</option>
+              <option value="shipped">{t("phaseShipped")}</option>
+              <option value="delivered">{t("phaseDelivered")}</option>
+              <option value="cancelled">{t("phaseCancelled")}</option>
+              <option value="stock_issue">{t("phaseStockIssue")}</option>
+            </select>
+          </label>
+          <button class="commerce-button">{t("saveStatus")}</button>
+          <p
+            class="notice"
+            data-form-error
+            role="alert"
+            tabindex="-1"
+            hidden
+          ></p>
+        </form>
+        <p class="commerce-note" style="margin-top: 20px">
+          {t("statusNote")}
+        </p>
+      </section>
+      <section class="commerce-config-panel">
+        <h2>{t("allowedTransitions")}</h2>
+        <ul id="list-transitions" class="commerce-rows"></ul>
+        <form id="transition-form" style="margin-top: 24px">
+          <label class="commerce-field">
+            <span>{t("from")}</span>
+            <select name="from" id="flow-from"></select>
+          </label>
+          <label class="commerce-field">
+            <span>{t("to")}</span>
+            <select name="to" id="flow-to"></select>
+          </label>
+          <button class="commerce-button">{t("addTransition")}</button>
+          <p
+            class="notice"
+            data-form-error
+            role="alert"
+            tabindex="-1"
+            hidden
+          ></p>
+        </form>
+      </section>
+    </div>
+  </section>
+</Layout>
+<script>
+  import "../../../../features/settings/page";
+</script>

@@ -1,0 +1,143 @@
+---
+import "../styles/global.css";
+import Icon from "../components/Icon.astro";
+import CartDialog from "../../features/cart/CartDialog.astro";
+import { translate, type Locale } from "../i18n";
+interface Props {
+  title: string;
+  locale: Locale;
+  kind?: string;
+  current?: "orders" | "checkout";
+  cart?: boolean;
+}
+const { title, locale, kind, current, cart = false } = Astro.props;
+const t = translate(locale);
+function languageUrl(language: string) {
+  const url = new URL(Astro.url);
+  url.pathname = url.pathname.replace(
+    /^\/(es|en)(\/|$)/,
+    "/" + language + "$2",
+  );
+  return url.pathname + url.search;
+}
+---
+
+<!doctype html>
+<html lang={locale}>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex,nofollow" />
+    <meta name="description" content={t("heroDescription")} />
+    <title>{title} · BÉRONT</title>
+    <link
+      rel="preload"
+      href="/fonts/cormorant-garamond.ttf"
+      as="font"
+      type="font/ttf"
+      crossorigin
+    />
+    <link rel="icon" href="data:," />
+  </head>
+  <body class="storefront">
+    <a class="skip" href="#main">
+      {t("skip")}
+    </a>
+    <div class="header-band">
+      <div class="wrap">
+        <header class="site-header">
+          <nav class="primary-nav" aria-label={t("catalog")}>
+            <a
+              href={`/${locale}/catalog/decants`}
+              aria-current={kind === "decant" ? "page" : undefined}
+            >
+              {t("decants")}
+            </a>
+            <a
+              href={`/${locale}/catalog/full-bottles`}
+              aria-current={kind === "full_bottle" ? "page" : undefined}
+            >
+              {t("bottles")}
+            </a>
+          </nav>
+          <a class="wordmark" href={`/${locale}/`} aria-label="BÉRONT">
+            BÉRONT
+          </a>
+          <div class="header-actions">
+            <a
+              class="header-link"
+              href={`/${locale}/orders`}
+              aria-current={current === "orders" ? "page" : undefined}
+            >
+              {t("myOrder")}
+            </a>
+            <nav
+              class="languages"
+              aria-label={locale === "es" ? "Idioma" : "Language"}
+            >
+              <a
+                href={languageUrl("es")}
+                aria-current={locale === "es" ? "page" : undefined}
+              >
+                ES
+              </a>
+              <span aria-hidden="true">/</span>
+              <a
+                href={languageUrl("en")}
+                aria-current={locale === "en" ? "page" : undefined}
+              >
+                EN
+              </a>
+            </nav>
+            <a
+              class="cart-link"
+              href={`/${locale}/checkout`}
+              aria-current={current === "checkout" ? "page" : undefined}
+              data-open-cart={cart ? "" : undefined}
+            >
+              <Icon name="bag" />
+              <span class="cart-label">{t("cart")}</span>
+              <span class="cart-count" data-cart-count>
+                0
+              </span>
+            </a>
+          </div>
+        </header>
+      </div>
+    </div>
+    <div class="shipping-line">{t("shippingLine")}</div>
+    <slot />
+    <footer class="site-footer">
+      <div class="wrap">
+        <div class="footer-top">
+          <div>
+            <a class="wordmark" href={`/${locale}/`}>
+              BÉRONT
+            </a>
+            <p class="footer-tagline">{t("footerTagline")}</p>
+          </div>
+          <nav class="footer-nav" aria-label={t("footerShop")}>
+            <h2>{t("footerShop")}</h2>
+            <a href={`/${locale}/catalog/decants`}>{t("decants")}</a>
+            <a href={`/${locale}/catalog/full-bottles`}>{t("bottles")}</a>
+            <a href={`/${locale}/orders`}>{t("myOrder")}</a>
+            <a href={`/${locale}/admin/login`}>{t("adminAccess")}</a>
+          </nav>
+          <div class="footer-shipping">
+            <h2>{t("footerDelivery")}</h2>
+            <p>{t("shippingFooter")}</p>
+          </div>
+        </div>
+        <div class="footer-bottom">
+          <span>BÉRONT · Ecuador</span>
+          <span>USD</span>
+        </div>
+      </div>
+    </footer>
+    {cart && <CartDialog locale={locale} />}
+    <div id="toast" class="toast" role="status" hidden></div>
+    <script>
+      import "../../features/cart/header";
+    </script>
+  </body>
+</html>

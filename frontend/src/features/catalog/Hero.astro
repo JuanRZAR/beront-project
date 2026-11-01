@@ -1,0 +1,112 @@
+---
+import Bottle from "../../shared/components/BottleIllustration.astro";
+import Icon from "../../shared/components/Icon.astro";
+import ProductImage from "../../shared/components/ProductImage.astro";
+import { translate, type Locale } from "../../shared/i18n";
+import type { Product } from "../../shared/http/contracts";
+interface Props {
+  locale: Locale;
+  slides: Product[];
+}
+const { locale, slides } = Astro.props;
+const t = translate(locale);
+const link = (product: Product) =>
+  `/${locale}/products/${encodeURIComponent(product.slug)}?kind=${
+    product.variants[0]?.kind ?? "decant"
+  }`;
+---
+
+<div class="hero-band">
+  <section class="catalog-intro wrap" aria-labelledby="catalog-heading">
+    <div>
+      <h1 id="catalog-heading">
+        {t("heroOne")}
+        <br />
+        {t("heroTwo")}
+        <br />
+        {t("heroThree")}
+      </h1>
+      <p>{t("heroDescription")}</p>
+      <a class="button hero-cta" href="#catalog">
+        {t("explore")}
+      </a>
+    </div>
+    {slides.length ? (
+      <section
+        class="hero-carousel"
+        id="hero-carousel"
+        role="region"
+        aria-roledescription={t("carouselRole")}
+        aria-label={t("carouselLabel")}
+        tabindex="0"
+      >
+        {slides.map((product, position) => (
+          <div
+            class="hero-slide"
+            role="group"
+            aria-roledescription={t("slideRole")}
+            aria-label={`${position + 1} / ${slides.length}`}
+            data-slide
+            data-label={product.brand.name + " " + product.name}
+            hidden={position > 0}
+          >
+            <div class="hero-photo-stage">
+              <ProductImage
+                image={product.images[0]}
+                locale={locale}
+                name={product.brand.name + " " + product.name}
+                eager={position === 0}
+              />
+            </div>
+            <div class="carousel-caption">
+              <div>
+                <p>{product.brand.name}</p>
+                <h2>{product.name}</h2>
+              </div>
+              <a class="hero-product-link" href={link(product)}>
+                {t("viewPerfume")}
+              </a>
+            </div>
+          </div>
+        ))}
+        {slides.length > 1 && (
+          <div class="carousel-controls">
+            <button
+              type="button"
+              class="icon-button"
+              id="carousel-previous"
+              aria-label={t("previousPerfume")}
+            >
+              <Icon name="previous" />
+            </button>
+            <div class="carousel-dots">
+              {slides.map((product, position) => (
+                <button
+                  type="button"
+                  data-dot
+                  aria-label={t("viewPerfume") + ": " + product.name}
+                  aria-current={position === 0 ? "true" : "false"}
+                >
+                  <span />
+                </button>
+              ))}
+            </div>
+            <button
+              type="button"
+              class="icon-button"
+              id="carousel-next"
+              aria-label={t("nextPerfume")}
+            >
+              <Icon name="next" />
+            </button>
+          </div>
+        )}
+        <p id="carousel-announcement" class="sr-only" role="status" />
+      </section>
+    ) : (
+      <div class="hero-art">
+        <Bottle hero />
+      </div>
+    )}
+  </section>
+</div>

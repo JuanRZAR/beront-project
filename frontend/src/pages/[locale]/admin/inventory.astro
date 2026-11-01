@@ -1,0 +1,338 @@
+---
+import Layout from "../../../shared/layouts/AdminLayout.astro";
+import Icon from "../../../shared/components/Icon.astro";
+import Notice from "../../../shared/components/Notice.astro";
+import Pagination from "../../../shared/components/Pagination.astro";
+import { isLocale, translate, number } from "../../../shared/i18n";
+import { serverGet } from "../../../shared/http/server";
+import { errorMessage } from "../../../shared/http/errors";
+import {
+  catalogLabels,
+  type ProductLabel,
+} from "../../../features/admin/catalog-index";
+import type { Balance, Movement } from "../../../shared/http/contracts";
+const locale = Astro.params.locale;
+if (!isLocale(locale)) return new Response(null, { status: 404 });
+const t = translate(locale),
+  cookie = Astro.request.headers.get("cookie") ?? "";
+const kind = ["full_bottle", "movements"].includes(
+  Astro.url.searchParams.get("kind") ?? "",
+)
+  ? Astro.url.searchParams.get("kind")!
+  : "decant";
+const q = (Astro.url.searchParams.get("q") ?? "").slice(0, 120),
+  page = Math.max(
+    1,
+    Math.min(
+      10000,
+      Number.parseInt(Astro.url.searchParams.get("page") ?? "1", 10) || 1,
+    ),
+  ),
+  size = 24;
+let balances: Balance[] = [],
+  movements: Movement[] = [],
+  labels = new Map<string, ProductLabel>(),
+  error = "",
+  total = 0;
+try {
+  labels = await catalogLabels(cookie);
+  if (kind === "movements") {
+    const result = await serverGet<Movement[]>(
+      "/api/v1/admin/inventory/movements?page=" + page + "&page_size=" + size,
+      cookie,
+    );
+    movements = result.data;
+    total = result.meta?.total ?? movements.length;
+  } else {
+    let part = 1,
+      all: Balance[] = [];
+    for (;;) {
+      const result = await serverGet<Balance[]>(
+        "/api/v1/admin/inventory?page_size=48&page=" + part,
+        cookie,
+      );
+      all = all.concat(result.data);
+      if (!result.meta || part * 48 >= result.meta.total) break;
+      part++;
+    }
+    all = all.filter(
+      (balance) =>
+        balance.kind === kind &&
+        (!q ||
+          (labels.get(balance.target_id)?.name ?? "")
+            .toLocaleLowerCase()
+            .includes(q.toLocaleLowerCase())),
+    );
+    total = all.length;
+    balances = all.slice((page - 1) * size, page * size);
+  }
+} catch (err) {
+  error = errorMessage(err, locale);
+}
+const canAdjust = Astro.locals.user?.permissions.includes("inventory:adjust");
+function kindUrl(value: string) {
+  return `/${locale}/admin/inventory?kind=${value}`;
+}
+const date = new Intl.DateTimeFormat(locale === "es" ? "es-EC" : "en-US", {
+  dateStyle: "medium",
+  timeStyle: "short",
+  timeZone: "America/Guayaquil",
+});
+---
+
+<Layout title={t("inventory")} locale={locale} active="inventory">
+  <div class="page-heading">
+    <div>
+      <h1>{t("inventory")}</h1>
+      <p>{t("inventoryIntroduction")}</p>
+    </div>
+  </div>
+  <nav class="inventory-tabs" role="tablist" aria-label={t("type")}>
+    {[
+      ["decant", "decantMl"],
+      ["full_bottle", "bottlesUnits"],
+      ["movements", "movements"],
+    ].map(([value, key]) => (
+      <a role="tab" aria-selected={kind === value} href={kindUrl(value!)}>
+        {t(key!)}
+      </a>
+    ))}
+  </nav>
+  <div class="notice">
+    {t(
+      kind === "decant"
+        ? "inventoryNote"
+        : kind === "full_bottle"
+          ? "bottleStock"
+          : "auditNote",
+    )}
+  </div>
+  {Astro.url.searchParams.get("updated") === "1" && (
+    <div class="notice" role="status">
+      {t("inventorySaved")}
+    </div>
+  )}
+  {kind !== "movements" && (
+    <form class="admin-tools" method="get">
+      <>
+        <input type="hidden" name="kind" value={kind} />
+        <div class="search-field">
+          <>
+            <Icon name="search" />
+            <label class="sr-only" for="inventory-search">
+              {t("inventorySearch")}
+            </label>
+            <input
+              id="inventory-search"
+              type="search"
+              name="q"
+              value={q}
+              placeholder={t("inventorySearch")}
+              maxlength="120"
+            />
+          </>
+        </div>
+        <button class="button outline small" type="submit">
+          {t("search")}
+        </button>
+      </>
+    </form>
+  )}
+  {error ? (
+    <Notice locale={locale} message={error} retry />
+  ) : (
+    <>
+      <>
+        <div
+          class="table-scroll"
+          tabindex="0"
+          role="region"
+          aria-label={t("inventory")}
+        >
+          <table class="admin-table">
+            <>
+              <thead>
+                <tr>
+                  {(kind === "movements"
+                    ? ["date", "product", "movement", "reason"]
+                    : ["product", "balance", "status", "actions"]
+                  ).map((key) => (
+                    <th>{t(key)}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {kind === "movements"
+                  ? movements.map((item) => (
+                      <tr>
+                        <td>{date.format(new Date(item.created_at))}</td>
+                        <td data-label={t("product")}>
+                          {labels.get(item.target_id)?.name ??
+                            t("productUnavailable")}
+                        </td>
+                        <td data-label={t("movement")}>
+                          {number(item.delta)}{" "}
+                          {item.kind === "decant" ? "ml" : t("units")}
+                        </td>
+                        <td data-label={t("reason")}>{item.reason}</td>
+                      </tr>
+                    ))
+                  : balances.map((item) => {
+                      const label = labels.get(item.target_id);
+                      return (
+                        <tr>
+                          <td>
+                            {label?.name ?? t("productUnavailable")}
+                            <br />
+                            <span class="hint">
+                              {label?.brand}
+                              {label?.volume
+                                ? " · " + number(label.volume) + " ml"
+                                : ""}
+                            </span>
+                          </td>
+                          <td class="inventory-value" data-label={t("balance")}>
+                            {number(item.amount)}
+                            <small>
+                              {item.kind === "decant" ? "ml" : t("units")}
+                            </small>
+                          </td>
+                          <td data-label={t("status")}>
+                            <span
+                              class:list={[
+                                "status",
+                                { muted: !label?.available },
+                              ]}
+                            >
+                              {t(
+                                label?.available ? "available" : "unavailable",
+                              )}
+                            </span>
+                          </td>
+                          <td>
+                            {canAdjust && label && (
+                              <button
+                                class="text-button"
+                                data-adjust-stock
+                                data-target={item.target_id}
+                                data-kind={item.kind}
+                                data-amount={item.amount}
+                                data-version={item.version}
+                                data-name={label.name}
+                              >
+                                {t("adjust")}
+                              </button>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                {!(kind === "movements"
+                  ? movements.length
+                  : balances.length) && (
+                  <tr>
+                    <td colspan="4">
+                      {t(kind === "movements" ? "noMovements" : "noStock")}
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </>
+          </table>
+        </div>
+        <div class="table-footer">
+          <>
+            <span>
+              {total} {t("records")}
+            </span>
+            <span>{t("manualUpdates")}</span>
+          </>
+        </div>
+        <Pagination locale={locale} page={page} pageSize={size} total={total} />
+      </>
+    </>
+  )}
+  {canAdjust && (
+    <dialog
+      id="stock-dialog"
+      class="dialog small-dialog"
+      aria-labelledby="stock-title"
+    >
+      <form id="stock-form">
+        <>
+          <div class="dialog-heading">
+            <>
+              <h2 id="stock-title">{t("adjustInventory")}</h2>
+              <button
+                type="button"
+                class="icon-button"
+                id="close-stock-dialog"
+                aria-label={t("close")}
+              >
+                <Icon name="close" />
+              </button>
+            </>
+          </div>
+          <p id="stock-product-name" />
+          <div class="adjustment-preview">
+            <>
+              <div>
+                {t("currentBalance")}
+                <br />
+                <strong id="current-balance" />
+              </div>
+              <div>
+                {t("newBalance")}
+                <br />
+                <strong id="new-balance" />
+              </div>
+            </>
+          </div>
+          <label class="field">
+            <>
+              <span>{t("adjustment")}</span>
+              <input
+                id="stock-delta"
+                name="delta"
+                type="number"
+                step=".01"
+                required
+              />
+              <span class="hint">{t("adjustmentHelp")}</span>
+            </>
+          </label>
+          <label class="field">
+            <>
+              <span>{t("reason")}</span>
+              <textarea
+                name="reason"
+                id="stock-reason"
+                required
+                maxlength="300"
+                placeholder={t("reasonPlaceholder")}
+              />
+            </>
+          </label>
+          <p class="danger-text" id="stock-preview-error" role="alert" hidden>
+            {t("invalidAdjustment")}
+          </p>
+          <div class="notice" data-form-error tabindex="-1" hidden />
+          <p class="hint">{t("auditNote")}</p>
+          <div class="form-actions">
+            <>
+              <button type="button" class="button outline" id="cancel-stock">
+                {t("cancel")}
+              </button>
+              <button type="submit" class="button champagne">
+                {t("recordAdjustment")}
+              </button>
+            </>
+          </div>
+        </>
+      </form>
+    </dialog>
+  )}
+</Layout>
+<script>
+  import "../../../features/admin/inventory";
+</script>

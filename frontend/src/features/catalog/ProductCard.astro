@@ -1,0 +1,109 @@
+---
+import Icon from "../../shared/components/Icon.astro";
+import ProductImage from "../../shared/components/ProductImage.astro";
+import { translate, money, number, type Locale } from "../../shared/i18n";
+import type { Product } from "../../shared/http/contracts";
+interface Props {
+  product: Product;
+  locale: Locale;
+  kind: "decant" | "full_bottle";
+}
+const { product, locale, kind } = Astro.props;
+const t = translate(locale);
+const variants = product.variants
+  .filter((variant) => variant.kind === kind)
+  .sort((a, b) => Number(a.volume_ml) - Number(b.volume_ml));
+const initial = variants.find((variant) => variant.available) ?? variants[0];
+const href = `/${locale}/products/${encodeURIComponent(product.slug)}?kind=${kind}`;
+const label = product.brand.name + " " + product.name;
+---
+
+<article class="product-card" data-card>
+  <a class="product-image" href={href} aria-label={label}>
+    <ProductImage image={product.images[0]} locale={locale} name={label} />
+    {!product.available && <span class="stock-badge">{t("soldOut")}</span>}
+  </a>
+  <p class="product-meta">
+    {product.brand.name}
+    {product.classifications.length
+      ? " · " + product.classifications.map(t).join(" / ")
+      : ""}
+  </p>
+  <h3>
+    <a href={href}>{product.name}</a>
+  </h3>
+  <p class="product-kind">
+    {t(kind === "decant" ? "decants" : "bottles")} ·{" "}
+    {product.audience === "unisex" ? "Unisex" : t(product.audience)}
+  </p>
+  <div class="card-bottom">
+    <p class="price" aria-live="polite">
+      <span data-card-price>{initial ? money(initial.price) : "—"}</span>
+    </p>
+    <p class="size-note" data-card-size>
+      {initial ? number(initial.volume_ml) + " ml" : ""}
+    </p>
+  </div>
+  {variants.length > 0 && (
+    <>
+      <fieldset class="card-sizes">
+        <legend class="sr-only">{t("size") + ": " + label}</legend>
+        <div class="size-options">
+          {variants.map((variant) => (
+            <label class="size-choice">
+              <input
+                type="radio"
+                name={"size-" + product.id}
+                value={variant.id}
+                checked={variant.id === initial?.id}
+                data-price={variant.price}
+                data-volume={variant.volume_ml}
+                data-available={String(variant.available)}
+              />
+              <span>{number(variant.volume_ml)} ml</span>
+            </label>
+          ))}
+        </div>
+      </fieldset>
+      <div class="card-quantity">
+        <div class="quantity-stepper" data-stepper>
+          <button
+            type="button"
+            data-step="-1"
+            aria-label={t("reduce") + ": " + label}
+          >
+            <Icon name="minus" />
+          </button>
+          <input
+            type="number"
+            inputmode="numeric"
+            min="1"
+            max="20"
+            step="1"
+            value="1"
+            required
+            aria-label={t("quantity") + ": " + label}
+          />
+          <button
+            type="button"
+            data-step="1"
+            aria-label={t("increase") + ": " + label}
+          >
+            <Icon name="plus" />
+          </button>
+        </div>
+      </div>
+      <button
+        type="button"
+        class="button full card-add"
+        data-card-add
+        aria-label={t("addCart") + ": " + label}
+      >
+        <span>{t("quickAdd")}</span>
+      </button>
+      <p class="stock-note" data-card-stock hidden>
+        {t("soldOut")}
+      </p>
+    </>
+  )}
+</article>

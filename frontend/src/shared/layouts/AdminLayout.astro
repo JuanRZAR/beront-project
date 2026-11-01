@@ -1,0 +1,134 @@
+---
+import "../styles/global.css";
+import Icon from "../components/Icon.astro";
+import { translate, type Locale } from "../i18n";
+interface Props {
+  locale: Locale;
+  title: string;
+  active: "catalog" | "inventory" | "settings" | "media" | "orders";
+}
+const { locale, title, active } = Astro.props,
+  t = translate(locale),
+  user = Astro.locals.user;
+const language = (value: string) =>
+  Astro.url.pathname.replace(/^\/(es|en)(\/|$)/, "/" + value + "$2") +
+  Astro.url.search;
+---
+
+<!doctype html>
+<html lang={locale}>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex,nofollow" />
+    <title>
+      {title} · BÉRONT
+    </title>
+    <link rel="icon" href="data:," />
+  </head>
+  <body class="bg-brand-white text-brand-black">
+    <a class="skip" href="#main">
+      {t("skip")}
+    </a>
+    <div class="admin-shell">
+      <aside class="admin-sidebar">
+        <div>
+          <a class="wordmark" href={`/${locale}/`}>
+            BÉRONT
+          </a>
+          <p>{t("administration")}</p>
+        </div>
+        <nav aria-label={t("administration")}>
+          {user?.permissions.includes("catalog:read_private") && (
+            <a
+              href={`/${locale}/admin/products`}
+              aria-current={active === "catalog" ? "page" : undefined}
+            >
+              <Icon name="grid" />
+              {t("products")}
+            </a>
+          )}
+          {user?.permissions.includes("inventory:read") && (
+            <a
+              href={`/${locale}/admin/inventory`}
+              aria-current={active === "inventory" ? "page" : undefined}
+            >
+              <Icon name="stock" />
+              {t("inventory")}
+            </a>
+          )}
+          {user?.permissions.includes("orders:read") && (
+            <a
+              href={`/${locale}/admin/orders`}
+              aria-current={active === "orders" ? "page" : undefined}
+            >
+              <Icon name="receipt" />
+              {t("orders")}
+            </a>
+          )}
+          {user?.permissions.includes("catalog:write") && (
+            <a
+              href={`/${locale}/admin/media`}
+              aria-current={active === "media" ? "page" : undefined}
+            >
+              <Icon name="photo" />
+              {t("library")}
+            </a>
+          )}
+          {user?.permissions.includes("commerce:write") && (
+            <a
+              href={`/${locale}/admin/settings`}
+              aria-current={active === "settings" ? "page" : undefined}
+            >
+              <Icon name="settings" />
+              {t("settings")}
+            </a>
+          )}
+        </nav>
+        <a class="back-link" href={`/${locale}/`}>
+          {t("backCatalog")}
+        </a>
+      </aside>
+      <main id="main" class="admin-main">
+        <header class="admin-topbar">
+          <span>{t("adminPanel")}</span>
+          <div class="admin-account">
+            <nav
+              class="languages"
+              aria-label={locale === "es" ? "Idioma" : "Language"}
+            >
+              <a
+                href={language("es")}
+                aria-current={locale === "es" ? "page" : undefined}
+              >
+                ES
+              </a>
+              <a
+                href={language("en")}
+                aria-current={locale === "en" ? "page" : undefined}
+              >
+                EN
+              </a>
+            </nav>
+            <span>{user?.username}</span>
+            <button class="text-button" id="logout">
+              {t("logout")}
+            </button>
+          </div>
+        </header>
+        <div
+          class="notice"
+          id="admin-global-error"
+          role="alert"
+          tabindex="-1"
+          hidden
+        ></div>
+        <slot />
+      </main>
+    </div>
+    <div id="toast" class="toast" role="status" hidden></div>
+    <script>
+      import "../../features/identity/logout";
+    </script>
+  </body>
+</html>

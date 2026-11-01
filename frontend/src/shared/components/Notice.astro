@@ -1,0 +1,19 @@
+---
+import { translate, type Locale } from "../i18n";
+interface Props {
+  locale: Locale;
+  message: string;
+  retry?: boolean;
+}
+const { locale, message, retry = false } = Astro.props;
+const t = translate(locale);
+---
+
+<div class="notice" role="status">
+  <p>{message}</p>
+  {retry && (
+    <a class="text-button" href={Astro.url.pathname + Astro.url.search}>
+      {t("retry")}
+    </a>
+  )}
+</div>

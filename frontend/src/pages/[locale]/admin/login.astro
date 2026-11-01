@@ -1,0 +1,72 @@
+---
+import Layout from "../../../shared/layouts/SiteLayout.astro";
+import Icon from "../../../shared/components/Icon.astro";
+import { isLocale, translate } from "../../../shared/i18n";
+const locale = Astro.params.locale;
+if (!isLocale(locale)) return new Response(null, { status: 404 });
+const t = translate(locale),
+  unavailable = Astro.url.searchParams.get("unavailable") === "1";
+if (unavailable) Astro.response.status = 503;
+---
+
+<Layout title={t("adminAccess")} locale={locale}>
+  <main id="main">
+    <section class="login-layout">
+      <div class="login-brand">
+        <span class="wordmark">BÉRONT</span>
+        <p>{t("administration")}</p>
+      </div>
+      <div class="login-panel">
+        <form id="login-form">
+          <h1>{t("welcome")}</h1>
+          <p>{t("loginIntroduction")}</p>
+          <div
+            id="login-error"
+            class="notice"
+            tabindex="-1"
+            role="alert"
+            hidden={!unavailable}
+          >
+            {unavailable ? t("loadError") : ""}
+          </div>
+          <label class="field">
+            <span>{t("username")}</span>
+            <input
+              name="username"
+              autocomplete="username"
+              required
+              maxlength="100"
+            />
+          </label>
+          <label class="field">
+            <span>{t("password")}</span>
+            <span class="password-field">
+              <input
+                id="login-password"
+                name="password"
+                type="password"
+                autocomplete="current-password"
+                required
+                maxlength="128"
+              />
+              <button
+                id="show-password"
+                type="button"
+                aria-label={t("showPassword")}
+                aria-pressed="false"
+              >
+                <Icon name="eye" />
+              </button>
+            </span>
+          </label>
+          <button class="button full" type="submit">
+            {t("login")}
+          </button>
+        </form>
+      </div>
+    </section>
+  </main>
+</Layout>
+<script>
+  import "../../../features/identity/login";
+</script>

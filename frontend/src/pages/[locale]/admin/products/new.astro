@@ -1,0 +1,45 @@
+---
+import Layout from "../../../../shared/layouts/AdminLayout.astro";
+import Editor from "../../../../features/admin/ProductEditor.astro";
+import Notice from "../../../../shared/components/Notice.astro";
+import { isLocale, translate } from "../../../../shared/i18n";
+import { serverGet } from "../../../../shared/http/server";
+import { errorMessage } from "../../../../shared/http/errors";
+import type { Brand, OptionRow } from "../../../../shared/http/contracts";
+const locale = Astro.params.locale;
+if (!isLocale(locale)) return new Response(null, { status: 404 });
+let brands: Brand[] = [],
+  categories: OptionRow[] = [],
+  audiences: OptionRow[] = [],
+  error = "";
+try {
+  const cookie = Astro.request.headers.get("cookie") ?? "";
+  const [b, c, a] = await Promise.all([
+    serverGet<Brand[]>("/api/v1/admin/brands", cookie),
+    serverGet<OptionRow[]>("/api/v1/admin/catalog-options/categories", cookie),
+    serverGet<OptionRow[]>("/api/v1/admin/catalog-options/audiences", cookie),
+  ]);
+  brands = b.data;
+  categories = c.data.filter((row) => row.active);
+  audiences = a.data.filter((row) => row.active);
+} catch (err) {
+  error = errorMessage(err, locale);
+}
+---
+
+<Layout
+  title={translate(locale)("newProduct")}
+  locale={locale}
+  active="catalog"
+>
+  {error ? (
+    <Notice locale={locale} message={error} retry />
+  ) : (
+    <Editor
+      locale={locale}
+      brands={brands}
+      categories={categories}
+      audiences={audiences}
+    />
+  )}
+</Layout>

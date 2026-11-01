@@ -1,0 +1,300 @@
+---
+import Layout from "../../shared/layouts/SiteLayout.astro";
+import Hero from "./Hero.astro";
+import ProductCard from "./ProductCard.astro";
+import Icon from "../../shared/components/Icon.astro";
+import Notice from "../../shared/components/Notice.astro";
+import Pagination from "../../shared/components/Pagination.astro";
+import { translate, number, type Locale } from "../../shared/i18n";
+import { serverGet } from "../../shared/http/server";
+import { errorMessage } from "../../shared/http/errors";
+import type { Product, Facets, Envelope } from "../../shared/http/contracts";
+interface Props {
+  locale: Locale;
+  kind: "decant" | "full_bottle";
+}
+const { locale, kind } = Astro.props;
+const t = translate(locale);
+const query = new URLSearchParams(Astro.url.search);
+query.set("kind", kind);
+query.set("locale", locale);
+let result: Envelope<Product[]> = {
+  data: [],
+  meta: { page: 1, page_size: 24, total: 0 },
+};
+let facets: Facets = {
+  brands: [],
+  volumes_ml: [],
+  classifications: ["arabic", "designer", "niche"],
+  audiences: ["male", "female", "unisex"],
+  kinds: [],
+};
+let error = "";
+let featured: Product[] = [];
+const photographed = (product: Product) =>
+  /^\/media\/[a-f0-9]{32}\.webp$/.test(product.images[0]?.url ?? "");
+try {
+  [result, { data: facets }, featured] = await Promise.all([
+    serverGet<Product[]>("/api/v1/catalog/products?" + query),
+    serverGet<Facets>("/api/v1/catalog/facets?locale=" + locale),
+    serverGet<Product[]>(
+      "/api/v1/catalog/products?page_size=48&locale=" + locale,
+    )
+      .then(({ data }) => data.filter(photographed))
+      .catch(() => [] as Product[]),
+  ]);
+} catch (err) {
+  error = errorMessage(err, locale);
+  Astro.response.status =
+    err && typeof err === "object" && "status" in err
+      ? Number(err.status)
+      : 503;
+}
+const selected = (key: string, value: string) =>
+  query.getAll(key).includes(value);
+const hasFilters = [...Astro.url.searchParams].some(
+  ([key, value]) =>
+    !["page", "page_size", "sort", "locale", "kind"].includes(key) && value,
+);
+const title = t(kind === "decant" ? "decants" : "bottles");
+const slides = [
+  ...new Set(
+    [
+      featured[0],
+      featured.find((product) => product.classifications.includes("designer")),
+      featured.find((product) => product.classifications.includes("niche")),
+      ...featured,
+    ].filter((product): product is Product => !!product),
+  ),
+].slice(0, 3);
+---
+
+<Layout title={title} locale={locale} kind={kind} cart>
+  <main id="main">
+    <Hero locale={locale} slides={slides} />
+    <div class="wrap catalog-wrap" id="catalog">
+      <div class="section-line">
+        <nav class="catalog-tabs" aria-label={t("presentations")}>
+          <a
+            href={`/${locale}/catalog/decants`}
+            aria-current={kind === "decant" ? "page" : undefined}
+          >
+            {t("decants")}
+          </a>
+          <a
+            href={`/${locale}/catalog/full-bottles`}
+            aria-current={kind === "full_bottle" ? "page" : undefined}
+          >
+            {t("bottles")}
+          </a>
+        </nav>
+        <div class="catalog-search">
+          <div class="search-field">
+            <Icon name="search" />
+            <label class="sr-only" for="catalog-search">
+              {t("search")}
+            </label>
+            <input
+              id="catalog-search"
+              type="search"
+              name="q"
+              form="catalog-filters"
+              value={query.get("q") ?? ""}
+              placeholder={t("search")}
+              maxlength="120"
+            />
+          </div>
+          <button
+            id="open-filters"
+            class="button outline mobile-filter"
+            aria-expanded="false"
+            aria-controls="filters"
+          >
+            <Icon name="filter" />
+            {t("filters")}
+          </button>
+        </div>
+      </div>
+      <div class="catalog-body">
+        <aside id="filters" class="filters" aria-label={t("filters")}>
+          <div class="filter-header">
+            <h2>{t("filters")}</h2>
+            <a class="text-button" href={Astro.url.pathname}>
+              {t("clear")}
+            </a>
+            <button
+              id="close-filters"
+              class="icon-button filter-close"
+              aria-label={t("closeFilters")}
+            >
+              <Icon name="close" />
+            </button>
+          </div>
+          <form id="catalog-filters" method="get">
+            <fieldset class="filter-group">
+              <legend>{t("house")}</legend>
+              <select name="brand_id" aria-label={t("house")}>
+                <option value="">{t("allHouses")}</option>
+                {facets.brands.map((brand) => (
+                  <option
+                    value={brand.id}
+                    selected={selected("brand_id", brand.id)}
+                  >
+                    {brand.name}
+                  </option>
+                ))}
+              </select>
+            </fieldset>
+            <fieldset class="filter-group">
+              <legend>{t("classification")}</legend>
+              {facets.classifications.map((value) => (
+                <label class="check-label">
+                  <>
+                    <input
+                      type="checkbox"
+                      name="classification"
+                      value={value}
+                      checked={selected("classification", value)}
+                    />
+                    <span>{t(value)}</span>
+                  </>
+                </label>
+              ))}
+            </fieldset>
+            <fieldset class="filter-group">
+              <legend>{t("audience")}</legend>
+              {facets.audiences.map((value) => (
+                <label class="check-label">
+                  <>
+                    <input
+                      type="checkbox"
+                      name="audience"
+                      value={value}
+                      checked={selected("audience", value)}
+                    />
+                    <span>{value === "unisex" ? "Unisex" : t(value)}</span>
+                  </>
+                </label>
+              ))}
+            </fieldset>
+            <fieldset class="filter-group">
+              <legend>{t("size")}</legend>
+              {facets.volumes_ml.map((value) => (
+                <label class="check-label">
+                  <>
+                    <input
+                      type="checkbox"
+                      name="volume_ml"
+                      value={value}
+                      checked={selected("volume_ml", value)}
+                    />
+                    <span>{number(value)} ml</span>
+                  </>
+                </label>
+              ))}
+            </fieldset>
+            <fieldset class="filter-group">
+              <legend>{t("priceUsd")}</legend>
+              <div class="price-fields">
+                <label>
+                  <span class="hint">{t("from")}</span>
+                  <input
+                    name="min_price"
+                    type="number"
+                    min="0"
+                    step=".01"
+                    value={query.get("min_price") ?? ""}
+                    placeholder="$ 0"
+                  />
+                </label>
+                <label>
+                  <span class="hint">{t("to")}</span>
+                  <input
+                    name="max_price"
+                    type="number"
+                    min="0"
+                    step=".01"
+                    value={query.get("max_price") ?? ""}
+                  />
+                </label>
+              </div>
+            </fieldset>
+            <label class="check-label">
+              <input
+                type="checkbox"
+                name="available"
+                value="true"
+                checked={query.get("available") === "true"}
+              />
+              <span>{t("onlyAvailable")}</span>
+            </label>
+            <button type="submit" class="button outline full filter-submit">
+              {t("filters")}
+            </button>
+          </form>
+        </aside>
+        <section aria-label={title}>
+          <div class="result-toolbar">
+            <span>
+              {result.meta?.total ?? 0} {t("perfumes")}
+            </span>
+            <label>
+              <span class="sr-only">{t("sort")}</span>
+              <select name="sort" form="catalog-filters" data-filter-sort>
+                <option
+                  value="name"
+                  selected={!query.get("sort") || query.get("sort") === "name"}
+                >
+                  {t("sortName")}
+                </option>
+                <option
+                  value="price_asc"
+                  selected={query.get("sort") === "price_asc"}
+                >
+                  {t("sortLow")}
+                </option>
+                <option
+                  value="price_desc"
+                  selected={query.get("sort") === "price_desc"}
+                >
+                  {t("sortHigh")}
+                </option>
+              </select>
+            </label>
+          </div>
+          {error ? (
+            <Notice locale={locale} message={error} retry />
+          ) : result.data.length ? (
+            <div class="product-grid">
+              {result.data.map((product) => (
+                <ProductCard product={product} locale={locale} kind={kind} />
+              ))}
+            </div>
+          ) : (
+            <div class="empty-state">
+              <p>{t(hasFilters ? "noResultsHelp" : "emptyCatalogHelp")}</p>
+              {hasFilters && (
+                <a class="button outline" href={Astro.url.pathname}>
+                  {t("clear")}
+                </a>
+              )}
+            </div>
+          )}
+          {result.meta && (
+            <Pagination
+              locale={locale}
+              page={result.meta.page}
+              pageSize={result.meta.page_size}
+              total={result.meta.total}
+            />
+          )}
+        </section>
+      </div>
+    </div>
+  </main>
+</Layout>
+<script>
+  import "./filters";
+  import "./cards";
+  import "./hero";
+</script>

@@ -1,0 +1,34 @@
+---
+import Bottle from "./BottleIllustration.astro";
+import type { ProductImage } from "../http/contracts";
+import { translate, type Locale } from "../i18n";
+interface Props {
+  image?: ProductImage;
+  locale: Locale;
+  name: string;
+  eager?: boolean;
+}
+const { image, locale, name, eager = false } = Astro.props;
+const valid = image && /^\/media\/[a-f0-9]{32}\.webp$/.test(image.url);
+---
+
+{valid ? (
+  <img
+    src={image!.url}
+    alt={
+      (locale === "en" ? image!.alt_en || image!.alt_es : image!.alt_es) || name
+    }
+    loading={eager ? "eager" : "lazy"}
+    decoding="async"
+    data-photo
+    width="500"
+    height="600"
+  />
+) : (
+  <div class="image-fallback">
+    <>
+      <Bottle />
+      <span>{translate(locale)("imageUnavailable")}</span>
+    </>
+  </div>
+)}

@@ -1,0 +1,72 @@
+---
+import Icon from "../../shared/components/Icon.astro";
+import { translate, type Locale } from "../../shared/i18n";
+interface Props {
+  locale: Locale;
+}
+const { locale } = Astro.props;
+const t = translate(locale);
+---
+
+<dialog
+  id="cart-dialog"
+  class="dialog cart-dialog"
+  aria-labelledby="cart-title"
+>
+  <div class="dialog-heading">
+    <h2 id="cart-title">{t("cart")}</h2>
+    <button
+      type="button"
+      class="icon-button"
+      data-close
+      aria-label={t("close")}
+    >
+      <Icon name="close" />
+    </button>
+  </div>
+  <p id="cart-status" role="status"></p>
+  <div id="cart-notice" class="notice" tabindex="-1" hidden></div>
+  <div id="cart-items"></div>
+  <div id="cart-summary" hidden>
+    <div class="cart-total-line">
+      <span>{t("productsTotal")}</span>
+      <strong id="cart-total">—</strong>
+    </div>
+    <p class="hint">{t("shippingNotIncluded")}</p>
+    <a
+      id="continue-checkout"
+      class="button champagne full"
+      href={`/${locale}/checkout`}
+    >
+      {t("continueCheckout")}
+    </a>
+    <button id="continue-whatsapp" type="button" class="button outline full">
+      <Icon name="whatsapp" />
+      <span>{t("continueWhatsApp")}</span>
+    </button>
+    <p id="whatsapp-unavailable" class="hint" hidden>
+      {t("whatsappMissing")}
+    </p>
+    <p class="hint">{t("noReservation")}</p>
+    <button type="button" class="button outline full keep-shopping" data-close>
+      {t("keepExploring")}
+    </button>
+    <button id="clear-cart" type="button" class="text-button">
+      {t("clearCart")}
+    </button>
+  </div>
+</dialog>
+<button
+  type="button"
+  id="floating-cart"
+  class="floating-cart"
+  aria-haspopup="dialog"
+  data-open-cart
+  hidden
+>
+  <span>{t("viewCart")}</span>
+  <span class="floating-count" data-cart-count>
+    0
+  </span>
+  <Icon name="next" />
+</button>

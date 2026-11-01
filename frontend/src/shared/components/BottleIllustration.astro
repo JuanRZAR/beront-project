@@ -1,0 +1,72 @@
+---
+interface Props {
+  hero?: boolean;
+}
+const { hero = false } = Astro.props;
+---
+
+<svg
+  viewBox="0 0 300 340"
+  xmlns="http://www.w3.org/2000/svg"
+  aria-hidden="true"
+>
+  <ellipse
+    cx="150"
+    cy="314"
+    rx="79"
+    ry="8"
+    fill="#0B0B0B"
+    opacity=".08"
+  ></ellipse>
+  <rect x="107" y="39" width="86" height="62" rx="3" fill="#0B0B0B"></rect>
+  <path d="M111 45h3v48h-3Z" fill="#F8F8F8" opacity=".2"></path>
+  <rect x="124" y="99" width="52" height="18" fill="#B8A58A"></rect>
+  <rect x="72" y="114" width="156" height="191" rx="12" fill="#0B0B0B"></rect>
+  <path
+    d="M81 128v157c0 5 3 8 8 8"
+    fill="none"
+    stroke="#F8F8F8"
+    stroke-opacity=".4"
+    stroke-width="3"
+  ></path>
+  {hero && (
+    <>
+      <>
+        <rect x="88" y="168" width="124" height="90" fill="#F8F8F8" />
+        <text
+          x="150"
+          y="214"
+          text-anchor="middle"
+          font-family="Georgia,serif"
+          font-size="22"
+          letter-spacing="-1"
+          fill="#0B0B0B"
+        >
+          BÉRONT
+        </text>
+        <rect
+          x="226"
+          y="182"
+          width="25"
+          height="117"
+          rx="5"
+          fill="#B8A58A"
+          fill-opacity=".5"
+          stroke="#B8A58A"
+        />
+        <rect x="226" y="164" width="25" height="32" rx="3" fill="#0B0B0B" />
+        <rect
+          x="264"
+          y="217"
+          width="19"
+          height="82"
+          rx="4"
+          fill="#B8A58A"
+          fill-opacity=".35"
+          stroke="#B8A58A"
+        />
+        <rect x="264" y="201" width="19" height="28" rx="2" fill="#0B0B0B" />
+      </>
+    </>
+  )}
+</svg>

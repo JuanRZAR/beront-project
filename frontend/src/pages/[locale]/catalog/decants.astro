@@ -1,0 +1,8 @@
+---
+import Catalog from "../../../features/catalog/CatalogPage.astro";
+import { isLocale } from "../../../shared/i18n";
+const locale = Astro.params.locale;
+if (!isLocale(locale)) return new Response(null, { status: 404 });
+---
+
+<Catalog locale={locale} kind="decant" />

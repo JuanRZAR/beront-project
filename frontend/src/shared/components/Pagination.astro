@@ -1,0 +1,35 @@
+---
+import { translate, type Locale } from "../i18n";
+interface Props {
+  locale: Locale;
+  page: number;
+  pageSize: number;
+  total: number;
+}
+const { locale, page, pageSize, total } = Astro.props;
+const t = translate(locale);
+const pages = Math.max(1, Math.ceil(total / pageSize));
+function href(number: number) {
+  const url = new URL(Astro.url);
+  url.searchParams.set("page", String(number));
+  return url.pathname + url.search;
+}
+---
+
+{pages > 1 && (
+  <nav class="pagination" aria-label={t("page")}>
+    {page > 1 && (
+      <a class="button outline small" href={href(page - 1)}>
+        {t("previous")}
+      </a>
+    )}
+    <span aria-current="page">
+      {t("page")} {page} / {pages}
+    </span>
+    {page < pages && (
+      <a class="button outline small" href={href(page + 1)}>
+        {t("next")}
+      </a>
+    )}
+  </nav>
+)}

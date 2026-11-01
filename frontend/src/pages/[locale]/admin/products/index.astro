@@ -1,0 +1,86 @@
+---
+import Layout from "../../../../shared/layouts/AdminLayout.astro";
+import Icon from "../../../../shared/components/Icon.astro";
+import ProductTable from "../../../../features/admin/ProductTable.astro";
+import Notice from "../../../../shared/components/Notice.astro";
+import Pagination from "../../../../shared/components/Pagination.astro";
+import { isLocale, translate } from "../../../../shared/i18n";
+import { serverGet } from "../../../../shared/http/server";
+import { errorMessage } from "../../../../shared/http/errors";
+import type { Product, Envelope } from "../../../../shared/http/contracts";
+const locale = Astro.params.locale;
+if (!isLocale(locale)) return new Response(null, { status: 404 });
+const t = translate(locale),
+  cookie = Astro.request.headers.get("cookie") ?? "";
+const query = new URLSearchParams(Astro.url.search);
+query.set("locale", locale);
+let result: Envelope<Product[]> = { data: [] },
+  error = "";
+try {
+  result = await serverGet<Product[]>(
+    "/api/v1/admin/products?" + query,
+    cookie,
+  );
+} catch (err) {
+  error = errorMessage(err, locale);
+}
+const canWrite = Astro.locals.user?.permissions.includes("catalog:write");
+---
+
+<Layout title={t("products")} locale={locale} active="catalog">
+  <div class="page-heading">
+    <div>
+      <h1>{t("products")}</h1>
+      <p>{t("manageCatalog")}</p>
+    </div>
+    {canWrite && (
+      <a class="button" href={`/${locale}/admin/products/new`}>
+        <Icon name="plus" />
+        {t("newProduct")}
+      </a>
+    )}
+  </div>
+  <form class="admin-tools" method="get">
+    <div class="search-field">
+      <Icon name="search" />
+      <label class="sr-only" for="admin-search">
+        {t("search")}
+      </label>
+      <input
+        id="admin-search"
+        type="search"
+        name="q"
+        value={query.get("q") ?? ""}
+        placeholder={t("search")}
+        maxlength="120"
+      />
+    </div>
+    <button class="button outline small" type="submit">
+      {t("search")}
+    </button>
+  </form>
+  {error ? (
+    <Notice locale={locale} message={error} retry />
+  ) : (
+    <>
+      <ProductTable
+        locale={locale}
+        products={result.data}
+        canWrite={canWrite ?? false}
+      />
+      <div class="table-footer">
+        <span>
+          {result.meta?.total ?? 0} {t("products").toLowerCase()}
+        </span>
+      </div>
+      {result.meta && (
+        <Pagination
+          locale={locale}
+          page={result.meta.page}
+          pageSize={result.meta.page_size}
+          total={result.meta.total}
+        />
+      )}
+    </>
+  )}
+</Layout>

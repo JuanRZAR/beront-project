@@ -1,0 +1,221 @@
+---
+import Layout from "../../shared/layouts/SiteLayout.astro";
+import Icon from "../../shared/components/Icon.astro";
+import { isLocale, translate } from "../../shared/i18n";
+const locale = Astro.params.locale;
+if (!isLocale(locale)) return new Response(null, { status: 404 });
+const t = translate(locale);
+---
+
+<Layout title={t("checkoutTitle")} locale={locale} current="checkout">
+  <main id="main" class="wrap commerce-page">
+    <ol class="commerce-steps">
+      <li class="done">
+        <a href={`/${locale}/catalog/decants`}>
+          <span class="step-circle">1</span>
+          <span>{t("stepCart")}</span>
+        </a>
+      </li>
+      <li aria-current="step">
+        <span class="step-circle">2</span>
+        <span>{t("checkoutTitle")}</span>
+      </li>
+      <li>
+        <span class="step-circle">3</span>
+        <span>{t("stepReceived")}</span>
+      </li>
+    </ol>
+    <h1>{t("checkoutTitle")}</h1>
+    <p class="commerce-note">{t("checkoutIntro")}</p>
+    <div id="checkout-empty" class="empty-state" hidden>
+      <h2>{t("emptyCart")}</h2>
+      <p>{t("emptyCartHelp")}</p>
+      <a class="button outline" href={`/${locale}/`}>
+        {t("keepExploring")}
+      </a>
+    </div>
+    <div
+      id="checkout-unavailable"
+      class="notice"
+      role="alert"
+      tabindex="-1"
+      hidden
+    >
+      {t("checkoutNotConfigured")}
+    </div>
+    <form id="purchase-form" hidden>
+      <div class="purchase-grid">
+        <fieldset class="purchase-panel">
+          <legend>{t("yourDetails")}</legend>
+          <label class="commerce-field">
+            <span>{t("cedula")}</span>
+            <input
+              name="cedula"
+              required
+              inputmode="numeric"
+              pattern="[0-9]{10}"
+              maxlength="10"
+              autocomplete="off"
+            />
+          </label>
+          <label class="commerce-field">
+            <span>{t("firstName")}</span>
+            <input
+              name="first_name"
+              required
+              maxlength="100"
+              autocomplete="given-name"
+            />
+          </label>
+          <label class="commerce-field">
+            <span>{t("lastName")}</span>
+            <input
+              name="last_name"
+              required
+              maxlength="100"
+              autocomplete="family-name"
+            />
+          </label>
+          <label class="commerce-field">
+            <span>{t("phoneLabel")}</span>
+            <input
+              name="phone"
+              type="tel"
+              required
+              inputmode="tel"
+              pattern="\+?[0-9]{7,15}"
+              maxlength="16"
+              autocomplete="tel"
+            />
+            <small>{t("phoneHelp")}</small>
+          </label>
+          <label class="commerce-field">
+            <span>{t("email")}</span>
+            <input
+              name="email"
+              type="email"
+              required
+              maxlength="254"
+              autocomplete="email"
+            />
+          </label>
+        </fieldset>
+        <fieldset class="purchase-panel">
+          <legend>{t("deliverySummary")}</legend>
+          <ul id="checkout-lines" class="purchase-lines"></ul>
+          <label class="commerce-field">
+            <span>{t("province")}</span>
+            <select id="province" required></select>
+          </label>
+          <label class="commerce-field">
+            <span>{t("city")}</span>
+            <select id="city" name="city_id" required disabled></select>
+          </label>
+          <label class="commerce-field">
+            <span>{t("addressOptional")}</span>
+            <input
+              name="address"
+              maxlength="300"
+              autocomplete="street-address"
+            />
+          </label>
+          <p class="commerce-note">{t("agencyNote")}</p>
+          <dl class="purchase-totals">
+            <div>
+              <dt>{t("subtotal")}</dt>
+              <dd id="checkout-subtotal">—</dd>
+            </div>
+            <div>
+              <dt>{t("servientregaDelivery")}</dt>
+              <dd id="checkout-shipping">{t("byCity")}</dd>
+            </div>
+            <div class="total">
+              <dt>Total</dt>
+              <dd id="checkout-total">{t("totalPending")}</dd>
+            </div>
+          </dl>
+        </fieldset>
+        <fieldset class="purchase-panel">
+          <legend>{t("paymentMethod")}</legend>
+          <label class="commerce-choice">
+            <input type="radio" name="payment" value="bank_transfer" />
+            <span>{t("bankTransfer")}</span>
+          </label>
+          <label class="commerce-choice">
+            <input type="radio" name="payment" value="whatsapp" checked />
+            <span>{t("payWhatsApp")}</span>
+          </label>
+          <p id="whatsapp-off" class="commerce-note" hidden>
+            {t("whatsappPaymentOff")}
+          </p>
+          <div id="bank-panel" hidden>
+            <div class="bank-options" id="bank-options"></div>
+            <div class="bank-details" id="bank-details"></div>
+            <label class="commerce-field">
+              <span>{t("receiptPhoto")}</span>
+              <input
+                id="receipt"
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+              />
+              <small>{t("receiptHelp")}</small>
+            </label>
+            <p class="commerce-note">{t("paymentReviewed")}</p>
+          </div>
+          <p id="whatsapp-panel" class="commerce-note strong">
+            {t("whatsappPaymentNote")}
+          </p>
+          <label class="commerce-check">
+            <input id="accept-terms" type="checkbox" required />
+            <span>
+              {t("acceptThe")}
+              <button class="text-button" type="button" id="open-terms">
+                {t("termsLink")}
+              </button>
+            </span>
+          </label>
+          <button class="commerce-button dark full" id="pay-button" disabled>
+            {t("pay")}
+          </button>
+          <p class="commerce-note" style="margin-top: 16px">
+            {t("noReserveNote")}
+          </p>
+          <p
+            class="notice"
+            data-form-error
+            role="alert"
+            tabindex="-1"
+            hidden
+          ></p>
+          <p id="purchase-status" role="status" class="form-status"></p>
+        </fieldset>
+      </div>
+    </form>
+    <div class="commerce-actions" style="margin-top: 28px">
+      <a class="text-button" href={`/${locale}/catalog/decants`}>
+        {t("keepExploring")}
+      </a>
+    </div>
+  </main>
+  <dialog
+    id="terms-dialog"
+    class="dialog small-dialog"
+    aria-labelledby="terms-title"
+  >
+    <div class="dialog-heading">
+      <h2 id="terms-title">{t("termsTitle")}</h2>
+      <button
+        class="icon-button"
+        type="button"
+        data-close
+        aria-label={t("close")}
+      >
+        <Icon name="close" />
+      </button>
+    </div>
+    <p id="terms-text" style="white-space: pre-line"></p>
+  </dialog>
+</Layout>
+<script>
+  import "../../features/checkout/page";
+</script>

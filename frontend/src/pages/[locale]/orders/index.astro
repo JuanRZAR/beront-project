@@ -1,0 +1,158 @@
+---
+import Layout from "../../../shared/layouts/SiteLayout.astro";
+import Icon from "../../../shared/components/Icon.astro";
+import { isLocale, translate } from "../../../shared/i18n";
+const locale = Astro.params.locale;
+if (!isLocale(locale)) return new Response(null, { status: 404 });
+const t = translate(locale);
+---
+
+<Layout title={t("myOrder")} locale={locale} current="orders">
+  <main id="main" class="wrap commerce-page">
+    <ol class="commerce-steps" id="order-steps" hidden>
+      <li class="done">
+        <span class="step-circle">1</span>
+        <span>{t("stepCart")}</span>
+      </li>
+      <li class="done">
+        <span class="step-circle">2</span>
+        <span>{t("checkoutTitle")}</span>
+      </li>
+      <li aria-current="step">
+        <span class="step-circle">3</span>
+        <span>{t("stepReceived")}</span>
+      </li>
+    </ol>
+    <h1>{t("orderStepByStep")}</h1>
+    <p class="commerce-note">{t("orderKeepCode")}</p>
+    <form id="tracking-form" class="commerce-actions">
+      <label class="commerce-field">
+        <span>{t("orderCode")}</span>
+        <input
+          id="tracking-code"
+          name="code"
+          placeholder="BRT-…"
+          autocomplete="off"
+          maxlength="40"
+          pattern="BRT-[A-Za-z0-9_\-]{24}"
+          required
+        />
+      </label>
+      <button class="commerce-button dark">{t("trackOrder")}</button>
+      <button class="text-button" type="button" id="open-recovery">
+        {t("lostCode")}
+      </button>
+      <p
+        class="notice"
+        data-form-error
+        role="alert"
+        tabindex="-1"
+        style="flex-basis: 100%"
+        hidden
+      ></p>
+    </form>
+    <div class="tracking-layout" id="order-result" hidden>
+      <section aria-live="polite">
+        <div class="order-code">
+          <span id="order-heading">{t("stepReceived")}</span>
+          <strong id="order-code-value"></strong>
+          <span>{t("saveCode")}</span>
+        </div>
+        <p class="order-phase" id="order-status"></p>
+        <p class="commerce-note" id="order-explanation"></p>
+        <ol id="order-timeline" class="order-timeline"></ol>
+        <div class="purchase-panel">
+          <h2>{t("servientregaTracking")}</h2>
+          <p>
+            {t("waybill")}: <strong id="order-guide"></strong>
+          </p>
+          <p>
+            {t("trackingNumber")}: <strong id="order-tracking"></strong>
+          </p>
+        </div>
+      </section>
+      <aside class="purchase-panel">
+        <h2>{t("yourSelection")}</h2>
+        <ul id="order-lines" class="purchase-lines"></ul>
+        <dl class="purchase-totals">
+          <div>
+            <dt>{t("subtotal")}</dt>
+            <dd id="order-subtotal"></dd>
+          </div>
+          <div>
+            <dt>{t("shipping")}</dt>
+            <dd id="order-shipping"></dd>
+          </div>
+          <div class="total">
+            <dt>Total</dt>
+            <dd id="order-total"></dd>
+          </div>
+        </dl>
+        <p class="commerce-note">{t("wrongReceiptNote")}</p>
+        <a
+          class="commerce-button full"
+          id="order-whatsapp"
+          href="#"
+          target="_blank"
+          rel="noopener noreferrer"
+          hidden
+        >
+          <Icon name="whatsapp" />
+          <span>{t("askWhatsApp")}</span>
+        </a>
+      </aside>
+    </div>
+  </main>
+  <dialog
+    id="recovery-dialog"
+    class="dialog small-dialog"
+    aria-labelledby="recovery-title"
+  >
+    <div class="dialog-heading">
+      <h2 id="recovery-title">{t("recoverCode")}</h2>
+      <button
+        class="icon-button"
+        type="button"
+        data-close
+        aria-label={t("close")}
+      >
+        <Icon name="close" />
+      </button>
+    </div>
+    <form id="recovery-form">
+      <label class="commerce-field">
+        <span>{t("orderCedula")}</span>
+        <input
+          name="cedula"
+          required
+          pattern="[0-9]{10}"
+          maxlength="10"
+          inputmode="numeric"
+          autocomplete="off"
+        />
+      </label>
+      <p class="commerce-note">{t("recoveryNote")}</p>
+      <button class="commerce-button full" id="recovery-submit">
+        {t("emailCode")}
+      </button>
+      <p class="notice" data-form-error role="alert" tabindex="-1" hidden></p>
+      <p class="form-status" id="recovery-status" role="status"></p>
+    </form>
+    <p class="commerce-note" style="margin-top: 20px">
+      {t("noCedulaNote")}
+    </p>
+    <a
+      class="commerce-button secondary full"
+      id="recovery-contact"
+      href="#"
+      target="_blank"
+      rel="noopener noreferrer"
+      hidden
+    >
+      {t("contactOwner")}
+    </a>
+  </dialog>
+</Layout>
+<script>
+  import "../../../features/orders/page";
+</script>

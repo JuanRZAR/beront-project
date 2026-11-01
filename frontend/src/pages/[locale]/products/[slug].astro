@@ -1,0 +1,236 @@
+---
+import Layout from "../../../shared/layouts/SiteLayout.astro";
+import Icon from "../../../shared/components/Icon.astro";
+import ProductImage from "../../../shared/components/ProductImage.astro";
+import Notice from "../../../shared/components/Notice.astro";
+import { isLocale, translate, money, number } from "../../../shared/i18n";
+import { serverGet } from "../../../shared/http/server";
+import { safeJson } from "../../../shared/http/serialization";
+import { ApiError, errorMessage } from "../../../shared/http/errors";
+import type { Product } from "../../../shared/http/contracts";
+const locale = Astro.params.locale;
+if (!isLocale(locale)) return new Response(null, { status: 404 });
+const t = translate(locale);
+let product: Product | null = null;
+let error = "";
+try {
+  product = (
+    await serverGet<Product>(
+      "/api/v1/catalog/products/" +
+        encodeURIComponent(Astro.params.slug ?? "") +
+        "?locale=" +
+        locale,
+    )
+  ).data;
+} catch (err) {
+  Astro.response.status = err instanceof ApiError ? err.status : 503;
+  error =
+    err instanceof ApiError && err.status === 404
+      ? t("productUnavailable")
+      : errorMessage(err, locale);
+}
+const kind =
+  Astro.url.searchParams.get("kind") === "full_bottle"
+    ? "full_bottle"
+    : product?.variants.some((v) => v.kind === "decant")
+      ? "decant"
+      : "full_bottle";
+const variants = product?.variants.filter((v) => v.kind === kind) ?? [];
+const selected =
+  variants.find((v) => v.available && v.volume_ml === "5.00") ??
+  variants.find((v) => v.available) ??
+  variants[0];
+---
+
+<Layout
+  title={product?.name ?? t("productUnavailable")}
+  locale={locale}
+  kind={kind}
+  cart
+>
+  <main id="main" class="wrap">
+    <nav class="breadcrumb" aria-label={t("catalog")}>
+      <a href={`/${locale}/`}>{t("catalog")}</a>
+      <span>/</span>
+      <a
+        href={`/${locale}/catalog/${kind === "decant" ? "decants" : "full-bottles"}`}
+      >
+        {t(kind === "decant" ? "decants" : "bottles")}
+      </a>
+      {product && (
+        <>
+          <>
+            <span>/</span>
+            <span>{product.name}</span>
+          </>
+        </>
+      )}
+    </nav>
+    {error ? (
+      <Notice locale={locale} message={error} retry />
+    ) : (
+      product && (
+        <section class="product-detail">
+          <div>
+            <div class="product-gallery" id="product-gallery">
+              <ProductImage
+                image={product.images[0]}
+                locale={locale}
+                name={product.name}
+                eager
+              />
+            </div>
+            {product.images.length > 1 && (
+              <div class="photo-thumbnails">
+                {product.images.map((image, index) => (
+                  <button
+                    type="button"
+                    data-photo={image.url}
+                    data-photo-alt={
+                      (locale === "en"
+                        ? image.alt_en || image.alt_es
+                        : image.alt_es) || product!.name
+                    }
+                    aria-label={t("photo") + " " + (index + 1)}
+                  >
+                    <ProductImage
+                      image={image}
+                      locale={locale}
+                      name={product!.name}
+                    />
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+          <div class="product-copy">
+            <>
+              <p class="house">{product.brand.name}</p>
+              <h1>{product.name}</h1>
+              <div class="attributes">
+                {product.classifications.map((value) => (
+                  <span class="attribute">{t(value)}</span>
+                ))}
+                <span class="attribute">
+                  {product.audience === "unisex"
+                    ? "Unisex"
+                    : t(product.audience)}
+                </span>
+              </div>
+            </>
+            <p class="description" lang={product.description_locale}>
+              {product.description}
+            </p>
+            {new Set(product.variants.map((v) => v.kind)).size > 1 && (
+              <nav class="presentation-kind" aria-label={t("type")}>
+                <a
+                  class={kind === "decant" ? "is-selected" : ""}
+                  href={"?kind=decant"}
+                >
+                  {t("decants")}
+                </a>
+                <a
+                  class={kind === "full_bottle" ? "is-selected" : ""}
+                  href={"?kind=full_bottle"}
+                >
+                  {t("bottles")}
+                </a>
+              </nav>
+            )}
+            <fieldset class="variant-group">
+              <>
+                <legend>{t("chooseSize")}</legend>
+                <div class="sizes">
+                  {variants.map((v) => (
+                    <button
+                      type="button"
+                      data-variant={v.id}
+                      aria-pressed={v.id === selected?.id}
+                    >
+                      {number(v.volume_ml)} ml
+                    </button>
+                  ))}
+                </div>
+              </>
+            </fieldset>
+            <>
+              <p class="detail-price" id="detail-price">
+                {selected ? money(selected.price) : "—"}{" "}
+                <small class="hint">USD</small>
+              </p>
+              <p id="variant-status" class="service-note">
+                {selected?.available ? t("available") : t("soldOut")}
+              </p>
+            </>
+            <div class="purchase-row">
+              <>
+                <div class="quantity-control">
+                  <>
+                    <button data-product-quantity="-1" aria-label={t("reduce")}>
+                      <Icon name="minus" />
+                    </button>
+                    <label class="sr-only" for="product-quantity">
+                      {t("quantity")}
+                    </label>
+                    <input
+                      id="product-quantity"
+                      type="number"
+                      min="1"
+                      max="20"
+                      value="1"
+                    />
+                    <button
+                      data-product-quantity="1"
+                      aria-label={t("increase")}
+                    >
+                      <Icon name="plus" />
+                    </button>
+                  </>
+                </div>
+                <button
+                  id="add-to-cart"
+                  class="button champagne"
+                  disabled={!selected?.available}
+                >
+                  <>
+                    <Icon name="bag" />
+                    <span>
+                      {selected?.available ? t("addCart") : t("soldOut")}
+                    </span>
+                  </>
+                </button>
+              </>
+            </div>
+            <>
+              <p class="service-note">{t("purchaseNote")}</p>
+              <p id="storage-notice" class="notice" hidden />
+              <div id="product-error" class="notice" tabindex="-1" hidden />
+            </>
+            <div class="detail-sections">
+              {kind === "decant" && (
+                <details open>
+                  <summary>{t("whatDecant")}</summary>
+                  <p>{t("decantExplanation")}</p>
+                </details>
+              )}
+              <details>
+                <>
+                  <summary>{t("shippingTitle")}</summary>
+                  <p>{t("shippingFooter")}</p>
+                </>
+              </details>
+            </div>
+          </div>
+          <script
+            type="application/json"
+            id="product-data"
+            set:html={safeJson({ variants, selected: selected?.id })}
+          />
+        </section>
+      )
+    )}
+  </main>
+</Layout>
+<script>
+  import "../../../features/catalog/product";
+</script>

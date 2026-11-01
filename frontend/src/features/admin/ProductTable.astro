@@ -1,0 +1,94 @@
+---
+import ProductImage from "../../shared/components/ProductImage.astro";
+import { translate, money, number, type Locale } from "../../shared/i18n";
+import type { Product } from "../../shared/http/contracts";
+interface Props {
+  locale: Locale;
+  products: Product[];
+  canWrite: boolean;
+}
+const { locale, products, canWrite } = Astro.props,
+  t = translate(locale);
+---
+
+<div class="table-scroll" tabindex="0" role="region" aria-label={t("products")}>
+  <table class="admin-table">
+    <thead>
+      <tr>
+        <th>{t("product")}</th>
+        <th>{t("presentations")}</th>
+        <th>{t("price")}</th>
+        <th>{t("status")}</th>
+        <th>
+          <span class="sr-only">{t("actions")}</span>
+        </th>
+      </tr>
+    </thead>
+    <tbody>
+      {products.map((product) => (
+        <tr>
+          <td>
+            <div class="admin-product-cell">
+              <div class="admin-thumb">
+                <ProductImage
+                  image={product.images[0]}
+                  locale={locale}
+                  name={product.name}
+                />
+              </div>
+              <div>
+                {product.name}
+                <p>{product.brand.name}</p>
+              </div>
+            </div>
+          </td>
+          <td data-label={t("presentations")}>
+            {product.variants.map((v) => (
+              <div>
+                {t(v.kind === "decant" ? "decant" : "fullBottle")} ·{" "}
+                {number(v.volume_ml)} ml{!v.active ? " · " + t("inactive") : ""}
+              </div>
+            ))}
+          </td>
+          <td data-label={t("price")}>
+            {product.price_from ? money(product.price_from) : "—"}
+          </td>
+          <td data-label={t("status")}>
+            <span
+              class:list={[
+                "status",
+                {
+                  muted:
+                    !product.published || product.sold_out || product.archived,
+                },
+              ]}
+            >
+              {product.archived
+                ? t("archive")
+                : product.sold_out
+                  ? t("soldOut")
+                  : product.published
+                    ? t("published")
+                    : t("draft")}
+            </span>
+          </td>
+          <td>
+            {canWrite && (
+              <a
+                class="text-button"
+                href={`/${locale}/admin/products/${product.id}`}
+              >
+                {t("edit")}
+              </a>
+            )}
+          </td>
+        </tr>
+      ))}
+      {!products.length && (
+        <tr>
+          <td colspan="5">{t("noResults")}</td>
+        </tr>
+      )}
+    </tbody>
+  </table>
+</div>

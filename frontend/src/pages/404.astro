@@ -1,0 +1,17 @@
+---
+import Layout from "../shared/layouts/SiteLayout.astro";
+import { translate } from "../shared/i18n";
+const locale = Astro.locals.locale ?? "es",
+  t = translate(locale);
+---
+
+<Layout title={t("productUnavailable")} locale={locale}>
+  <main id="main" class="wrap">
+    <div class="empty-state">
+      <h1>{t("productUnavailable")}</h1>
+      <a class="button outline" href={`/${locale}/`}>
+        {t("backCatalog")}
+      </a>
+    </div>
+  </main>
+</Layout>
