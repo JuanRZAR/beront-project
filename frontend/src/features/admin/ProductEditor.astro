@@ -9,9 +9,36 @@ interface Props {
   brands: Brand[];
   categories: OptionRow[];
   audiences: OptionRow[];
+  accords: OptionRow[];
+  usages: OptionRow[];
+  profiles: OptionRow[];
+  presentations: OptionRow[];
 }
-const { locale, product, brands, categories, audiences } = Astro.props,
+const {
+    locale,
+    product,
+    brands,
+    categories,
+    audiences,
+    accords,
+    usages,
+    profiles,
+    presentations,
+  } = Astro.props,
   t = translate(locale);
+const optionGroups = [
+  ["accords", "accordsTitle", accords],
+  ["usages", "usagesTitle", usages],
+  ["profiles", "profilesTitle", profiles],
+] as const;
+const available = presentations.filter(
+  (row) =>
+    !product?.variants.some(
+      (variant) =>
+        variant.kind === row.kind &&
+        Number(variant.volume_ml) === Number(row.volume_ml),
+    ),
+);
 ---
 
 <div class="page-heading">
@@ -73,17 +100,32 @@ const { locale, product, brands, categories, audiences } = Astro.props,
       <span>{t("audience")}</span>
       <select name="audience" required>
         {audiences.map((row) => (
-          <option
-            value={row.slug}
-            selected={
-              product ? product.audience === row.slug : row.slug === "unisex"
-            }
-          >
+          <option value={row.slug} selected={product?.audience === row.slug}>
             {locale === "en" ? row.name_en : row.name_es}
           </option>
         ))}
       </select>
     </label>
+    {optionGroups.map(([name, legend, rows]) =>
+      rows.length ? (
+        <fieldset class="wide filter-group">
+          <legend>{t(legend)}</legend>
+          <div class="check-row">
+            {rows.map((row) => (
+              <label>
+                <input
+                  type="checkbox"
+                  name={name}
+                  value={row.slug}
+                  checked={product?.[name].includes(row.slug)}
+                />
+                {locale === "en" ? row.name_en : row.name_es}
+              </label>
+            ))}
+          </div>
+        </fieldset>
+      ) : null,
+    )}
     <label class="field wide">
       <span>{t("descriptionSpanish")}</span>
       <textarea
@@ -203,64 +245,46 @@ const { locale, product, brands, categories, audiences } = Astro.props,
           ))}
         </div>
       </>
-      <form id="variant-create-form" class="variant-form">
-        <>
+      {available.length ? (
+        <form id="variant-create-form" class="variant-form">
           <h3>{t("addPresentation")}</h3>
           <div class="inline-variant">
-            <>
-              <label class="field">
-                <>
-                  <span>{t("type")}</span>
-                  <select name="kind">
-                    <>
-                      <option value="decant">{t("decant")}</option>
-                      <option value="full_bottle">{t("fullBottle")}</option>
-                    </>
-                  </select>
-                </>
-              </label>
-              <label class="field">
-                <>
-                  <span>{t("volume")}</span>
-                  <input
-                    name="volume_ml"
-                    type="number"
-                    step=".01"
-                    min=".01"
-                    max="9999999999.99"
-                    list="decant-volumes"
-                    required
-                  />
-                  <datalist id="decant-volumes">
-                    <>
-                      <option value="3" />
-                      <option value="5" />
-                      <option value="10" />
-                    </>
-                  </datalist>
-                </>
-              </label>
-              <label class="field">
-                <>
-                  <span>{t("priceUsd")}</span>
-                  <input
-                    name="price"
-                    type="number"
-                    step=".01"
-                    min=".01"
-                    max="9999999999.99"
-                    required
-                  />
-                </>
-              </label>
-            </>
+            <label class="field">
+              <span>{t("choosePresentation")}</span>
+              <select name="presentation" required>
+                {available.map((row) => (
+                  <option
+                    value={row.id}
+                    data-kind={row.kind}
+                    data-volume={row.volume_ml}
+                  >
+                    {locale === "en" ? row.name_en : row.name_es} ·{" "}
+                    {t(row.kind === "decant" ? "decant" : "fullBottle")} ·{" "}
+                    {number(row.volume_ml ?? "")} ml
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label class="field">
+              <span>{t("priceUsd")}</span>
+              <input
+                name="price"
+                type="number"
+                step=".01"
+                min=".01"
+                max="9999999999.99"
+                required
+              />
+            </label>
           </div>
           <div class="notice" data-form-error tabindex="-1" hidden />
           <button class="button champagne small" type="submit">
             {t("addVariant")}
           </button>
-        </>
-      </form>
+        </form>
+      ) : (
+        <p class="hint">{t("noPresentationsLeft")}</p>
+      )}
     </section>
     <section class="editor-panel">
       <>
@@ -318,7 +342,7 @@ const { locale, product, brands, categories, audiences } = Astro.props,
           ))}
         </div>
       </>
-      <form id="image-upload-form" class="demo-upload">
+      <form id="image-upload-form" class="upload-form">
         <>
           <label class="field">
             <>

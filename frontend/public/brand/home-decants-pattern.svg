@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="240" height="240" viewBox="0 0 240 240" fill="none" stroke="#b8a58a" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+  <defs>
+    <g id="decant">
+      <path d="M23.5 4c0-2.7 17-2.7 17 0v16h-17ZM22 22c0-2.7 20-2.7 20 0v12c0 2.7-20 2.7-20 0Z"/>
+      <circle cx="32" cy="7.5" r="2.3"/>
+      <path d="M26.5 3v15M25 23v10M39 23v10M25 36v2m14-2v2"/>
+      <rect x="19" y="38" width="26" height="64" rx="2.8"/>
+      <path d="M22 42h20l-1 47q-.2 5-4 5H27q-3.8 0-4-5ZM21 99q11 2 22 0"/>
+      <path d="M29.5 40c0-1.5 5-1.5 5 0s-5 1.5-5 3 5 1.5 5 3-5 1.5-5 3M30.5 50h3v7h-3ZM32 57c0 14-2 29-6 37"/>
+    </g>
+  </defs>
+  <use href="#decant" transform="translate(17 8) rotate(-15 32 52)"/>
+  <use href="#decant" transform="translate(143 11) rotate(13 32 52)"/>
+  <use href="#decant" transform="translate(17 132) rotate(13 32 52)"/>
+  <use href="#decant" transform="translate(143 129) rotate(-15 32 52)"/>
+</svg>

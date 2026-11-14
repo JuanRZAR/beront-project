@@ -1,8 +1,11 @@
 from decimal import Decimal
+from types import SimpleNamespace
 from uuid import uuid4
 
+import psycopg
 import pytest
 
+from beront.shared.domain.errors import DomainError
 from beront.shared.infrastructure.pg_call import PgCall, encode_payload
 
 
@@ -44,3 +47,31 @@ def test_pg_payload_preserves_money_and_identifiers():
     assert payload == {"id": str(identifier), "price": "9999999999.99"}
     with pytest.raises(TypeError):
         encode_payload({"unsupported": object()})
+
+
+@pytest.mark.parametrize(
+    "code",
+    [
+        "ADMIN_ALREADY_EXISTS",
+        "PRODUCT_NOT_READY",
+        "ASSET_IN_USE",
+        "INVALID_ASSET",
+        "INVALID_PRESENTATION",
+        "DEFINITION_IN_USE",
+    ],
+)
+def test_database_business_errors_preserve_readable_spanish(code):
+    class DatabaseError(psycopg.errors.RaiseException):
+        @property
+        def diag(self):
+            return SimpleNamespace(message_primary=code)
+
+    class Connection:
+        def execute(self, *args):
+            raise DatabaseError()
+
+    with pytest.raises(DomainError) as caught:
+        PgCall(Connection()).call("catalog_product_get", {})
+    message = caught.value.message
+    assert "Ã" not in message and "Â" not in message
+    assert any(letter in message for letter in "áíóú")

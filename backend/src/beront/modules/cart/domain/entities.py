@@ -4,6 +4,13 @@ from uuid import UUID
 
 
 @dataclass(frozen=True)
+class QuoteOption:
+    variant_id: UUID
+    volume_ml: Decimal
+    unit_price: Decimal
+
+
+@dataclass(frozen=True)
 class QuoteLine:
     variant_id: UUID
     brand_name: str
@@ -12,6 +19,9 @@ class QuoteLine:
     volume_ml: Decimal
     quantity: int
     unit_price: Decimal
+    product_slug: str = ""
+    image_url: str | None = None
+    options: tuple[QuoteOption, ...] = ()
 
     @property
     def line_total(self):

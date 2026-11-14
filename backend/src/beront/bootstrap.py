@@ -7,6 +7,7 @@ from beront.modules.catalog.application.manage_catalog import CatalogService
 from beront.modules.catalog.application.query_catalog import CatalogQueryFacade
 from beront.modules.catalog.infrastructure.images import LocalImageStorage
 from beront.modules.catalog.infrastructure.repositories import SqlCatalogRepository
+from beront.modules.commerce.application.featured_messages import FeaturedMessages
 from beront.modules.commerce.application.manage_commerce import CommerceService
 from beront.modules.commerce.infrastructure.repositories import SqlCommerceRepository
 from beront.modules.identity.application.authenticate import IdentityService
@@ -34,6 +35,7 @@ class Container:
     storage: LocalImageStorage
     media: MediaService
     commerce: CommerceService
+    featured: FeaturedMessages
     orders: OrderService
 
 
@@ -52,7 +54,7 @@ def build_container(settings, mailer=None):
         },
     )
     storage = LocalImageStorage(settings.storage_root)
-    queries = CatalogQueryFacade(factory)
+    queries = CatalogQueryFacade(factory, require_stock=settings.cart_requires_stock)
     commerce = CommerceService(factory)
     return Container(
         engine,
@@ -65,6 +67,7 @@ def build_container(settings, mailer=None):
         storage,
         MediaService(factory, storage),
         commerce,
+        FeaturedMessages(factory),
         OrderService(
             factory,
             storage,

@@ -14,6 +14,16 @@ def quote_data(quote):
                 "quantity": item.quantity,
                 "unit_price": decimal_text(item.unit_price),
                 "line_total": decimal_text(item.line_total),
+                "product_slug": item.product_slug,
+                "image_url": item.image_url,
+                "options": [
+                    {
+                        "variant_id": str(option.variant_id),
+                        "volume_ml": decimal_text(option.volume_ml),
+                        "unit_price": decimal_text(option.unit_price),
+                    }
+                    for option in item.options
+                ],
             }
             for item in quote.items
         ],

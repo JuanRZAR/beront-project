@@ -1,5 +1,6 @@
 ---
 import Layout from "../../../../shared/layouts/AdminLayout.astro";
+import FeaturedMessages from "../../../../features/settings/FeaturedMessages.astro";
 import { isLocale, translate } from "../../../../shared/i18n";
 const locale = Astro.params.locale;
 if (!isLocale(locale)) return new Response(null, { status: 404 });
@@ -17,6 +18,7 @@ const tabs = [
   ["delivery", "tabDelivery"],
   ["banks", "tabBanks"],
   ["flow", "tabStatuses"],
+  ["home", "homeManage"],
 ] as const;
 ---
 
@@ -306,6 +308,7 @@ const tabs = [
       </section>
     </div>
   </section>
+  <FeaturedMessages locale={locale} />
 </Layout>
 <script>
   import "../../../../features/settings/page";

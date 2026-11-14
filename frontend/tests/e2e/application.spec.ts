@@ -37,7 +37,15 @@ test("gestión real, inventario, imágenes y carrito sin reservar", async ({
   const editUrl = new URL(page.url()).pathname;
   const productId = editUrl.split("/").at(-1)!;
   const create = page.locator("#variant-create-form");
-  await create.locator('[name="volume_ml"]').fill("7.50");
+  const presentation = async (kind: string, volume: string) =>
+    create
+      .locator('[name="presentation"]')
+      .selectOption(
+        (await create
+          .locator(`option[data-kind="${kind}"][data-volume="${volume}"]`)
+          .getAttribute("value"))!,
+      );
+  await presentation("decant", "7.50");
   await create.locator('[name="price"]').fill("9.99");
   await create.locator('[type="submit"]').click();
   await expect(page.locator(".variant-form[data-variant-id]")).toHaveCount(1);
@@ -45,8 +53,7 @@ test("gestión real, inventario, imágenes y carrito sin reservar", async ({
     .locator(".variant-form[data-variant-id]")
     .first()
     .getAttribute("data-variant-id");
-  await create.locator('[name="kind"]').selectOption("full_bottle");
-  await create.locator('[name="volume_ml"]').fill("100");
+  await presentation("full_bottle", "100.00");
   await create.locator('[name="price"]').fill("100.00");
   await create.locator('[type="submit"]').click();
   await expect(page.locator(".variant-form[data-variant-id]")).toHaveCount(2);
@@ -65,7 +72,8 @@ test("gestión real, inventario, imágenes y carrito sin reservar", async ({
     .fill("Fotografía de pruebas");
   await page.locator('#image-upload-form [type="submit"]').click();
   await expect(page.locator(".image-form[data-image-id]")).toHaveCount(1);
-  await page.goto("/es/admin/inventory");
+  await page.goto("/es/admin/inventory?q=" + encodeURIComponent(name));
+  await expect(page.locator(".admin-table tbody tr")).toHaveCount(1);
   let row = page.locator(".admin-table tbody tr").filter({ hasText: name });
   await row.getByRole("button", { name: "Ajustar", exact: true }).click();
   await page.locator("#stock-delta").fill("20");
@@ -88,13 +96,34 @@ test("gestión real, inventario, imágenes y carrito sin reservar", async ({
   await expect(page).toHaveURL(/updated=1/);
   await expect(page.locator("#stock-dialog")).not.toBeVisible();
   await page.goto("/es/catalog/decants?q=" + encodeURIComponent(name));
-  await expect(page.locator(".product-card")).toHaveCount(1);
-  await expect(page.locator(".card-sizes input")).toHaveCount(1);
-  await expect(page.locator("[data-card-price]")).toHaveText("$9.99");
-  await expect(
-    page.locator("#hero-carousel .hero-slide:not([hidden]) img").first(),
-  ).toHaveAttribute("src", /^\/media\/[a-f0-9]{32}\.webp$/);
-  await page.locator(".product-card h3 a").click();
+  await expect(page.locator(".studio-card")).toHaveCount(1);
+  await page.locator(".studio-card").click();
+  await expect(page.locator("[data-sizes] .size-button")).toHaveCount(1);
+  await expect(page.locator("[data-scene-price]")).toHaveText("$9.99");
+  await expect(page.locator("[data-scene-photo]")).toHaveAttribute(
+    "src",
+    /^\/media\/[a-f0-9]{32}\.webp$/,
+  );
+  await page.goto("/es/catalog/full-bottles?q=" + encodeURIComponent(name));
+  await expect(page.locator(".cyl-item")).toHaveCount(1);
+  await expect(page.locator("[data-name]")).toHaveText(name);
+  await expect(page.locator("[data-price]")).toHaveText("$100.00");
+  await expect(page.locator("[data-link]")).toHaveAttribute(
+    "href",
+    /\/es\/products\/.+\?kind=full_bottle/,
+  );
+  await page.locator("[data-add]").click();
+  await expect(page.locator(".cart-link [data-cart-count]")).toHaveText("1");
+  await expect(page.locator("[data-summary-total]")).toHaveText("$100.00");
+  await page.locator(".cart-link").click();
+  await expect(page.locator("#cart-items .cart-row")).toHaveCount(1);
+  await expect(page.locator("#cart-items .cart-product-photo")).toHaveCount(1);
+  await expect(page.locator("#cart-items .mini-vial")).toHaveCount(0);
+  await page.locator("#clear-cart").click();
+  await page.keyboard.press("Escape");
+  await page.goto("/es/catalog/decants?q=" + encodeURIComponent(name));
+  await page.locator(".studio-card").click();
+  await page.locator("[data-scene-link]").click();
   const publicUrl = new URL(page.url()).pathname;
   await expect(page.locator(".sizes button")).toHaveText("7.50 ml");
   await expect(page.locator("#product-gallery img")).toHaveAttribute(
@@ -144,13 +173,14 @@ test("gestión real, inventario, imágenes y carrito sin reservar", async ({
   const responsiveRoutes = [
     publicUrl,
     "/es/catalog/decants",
+    "/es/catalog/full-bottles",
     "/es/checkout",
     "/es/admin/products?q=" + encodeURIComponent(name),
     editUrl,
     "/es/admin/inventory",
     "/es/admin/login",
   ];
-  for (const width of [320, 390, 768, 1024, 1440]) {
+  for (const width of [320, 390, 600, 768, 840, 1024, 1200, 1440, 1600, 1920]) {
     await page.setViewportSize({ width, height: 1000 });
     for (const route of responsiveRoutes) {
       await page.goto(route);

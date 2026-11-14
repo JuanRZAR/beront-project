@@ -4,6 +4,189 @@ Estado: arquitectura aprobada por el propietario el 23 de octubre de 2026.
 Entorno: ejecución local. Despliegue fuera de alcance.
 La aprobación arquitectónica no aprueba los prototipos visuales.
 
+## Auditoría y optimización local, 13 de noviembre de 2026
+
+La consulta de filtros reutiliza sus definiciones dentro de la misma unidad de trabajo y
+detiene la paginación tras un lote incompleto. La disponibilidad omite grupos de stock vacíos.
+El carrito comparte únicamente solicitudes idénticas de cotización que siguen en curso;
+no almacena respuestas como caché ni modifica la autoridad del backend sobre los importes.
+Los filtros descartan peticiones anteriores canceladas. No cambian contratos, esquema ni diseño.
+La auditoría y sus mediciones se registran en `docs/AUDITORIA.md`, conservando su histórico.
+El benchmark y las regresiones pertenecen a los patrones existentes de `backend/tests/` y
+`frontend/tests/`. El harness de navegador utiliza un directorio temporal de resultados por
+ejecución; Playwright directo conserva `frontend/test-results` como valor predeterminado.
+
+## Fotografías del carrito, 13 de noviembre de 2026
+
+El diálogo aprobado utiliza la imagen vigente de cada línea (`image_url` existente). Los completos
+muestran la foto; los decants muestran foto y mini frasco animado con nivel según ml. Se reutiliza
+`shared/components/vial.ts`, las preferencias de accesibilidad y la Container Query del diálogo.
+No hay cambios de módulos, esquema, endpoints ni contratos.
+
+## Solicitudes de compra por WhatsApp, 13 de noviembre de 2026
+
+El propietario solicita habilitar el carrito y enviar su resumen al WhatsApp 0939237376,
+registrado mediante CommerceService como `593939237376`, conservando los términos existentes.
+Ante la ausencia de existencias registradas, autoriza «por ahora coloquemos abierto, sin
+especificar cantidad». Esta excepción permite solicitudes; no confirma ventas ni inventa stock.
+
+`CART_REQUIRES_STOCK=true` mantiene la validación estricta por defecto. El entorno local usa
+`false`: CatalogQueryFacade admite cotizar sin saldo y el catálogo público presenta como
+seleccionables los productos publicados, activos y no agotados manualmente. `available` en este
+modo indica que se admite solicitar la presentación; no acredita existencias. Las consultas
+privadas, el checkout, los pedidos y las validaciones de pago mantienen las reglas de inventario.
+La selección estática utilizada por OrderService conserva `require_stock=true` por defecto.
+No cambia el esquema, los saldos ni los contratos estructurales de respuesta.
+
+El resumen de WhatsApp usa bloques numerados separados por líneas en blanco; presentación,
+cantidad, precio unitario y subtotal ocupan líneas independientes, con el total al final.
+
+El carrito conserva únicamente identificadores y cantidades en el navegador. El backend valida
+las presentaciones, calcula importes con Decimal y genera el enlace wa.me desde la configuración
+persistente. El texto incluye marca, modelo, presentación, cantidad, importes y total en USD,
+con disponibilidad y envío por confirmar. Cotizar o abrir WhatsApp no reserva ni descuenta stock;
+el cliente revisa el mensaje y decide enviarlo. No se envían mensajes automáticamente.
+
+`PUBLIC_CART_ENABLED=true` habilita los controles y el diálogo ya aprobados independientemente de
+`PUBLIC_CATALOG_ONLY`. Inicio, Decants y Perfumes completos siguen siendo las únicas secciones
+públicas de navegación; el carrito es una utilidad. En este perfil se omite la continuación a
+checkout y WhatsApp pasa a ser la acción principal. `PUBLIC_CART_ENABLED=false` permite ocultar
+los controles; `PUBLIC_CATALOG_ONLY=false` conserva el flujo completo existente.
+
+## Navegación pública limitada al catálogo, 13 de noviembre de 2026
+
+El propietario solicita mostrar temporalmente solo Inicio, Decants y Perfumes completos.
+`features/catalog/storefront.ts` centraliza `PUBLIC_CATALOG_ONLY`, activo por defecto.
+SiteLayout aplica el modo al menú público, cabecera, pie y carrito; MainMenu mantiene el
+menú completo en AdminLayout. Idioma y accesibilidad permanecen disponibles en cabecera.
+El Home omite mensajes con destinos fuera de estas secciones y las fichas del catálogo.
+Se conservan fotos, variantes, precios, filtros y fichas; las acciones de compra y el
+resumen del carrito se omiten del HTML público mientras este modo está activo.
+
+La administración conserva su URL, autenticación y permisos. Las rutas y endpoints
+existentes no se eliminan ni se bloquean por este ajuste de visibilidad. No constituye
+una barrera de autorización ni cambia los contratos del backend. `PUBLIC_CATALOG_ONLY=false`
+restaura la interfaz completa. Las pruebas integradas de funciones existentes usan ese
+perfil con base y servidores temporales. No se modifica la arquitectura ni el esquema.
+
+## Orden público del catálogo, 12 de noviembre de 2026
+
+Por solicitud del propietario, Decants y Perfumes completos se ordenan por marca y después
+por nombre de modelo, sin distinguir mayúsculas. `CatalogQueryFacade.search` aplica este
+orden a todos los resultados antes de paginarlos. El valor existente `sort=name`, también
+predeterminado, representa este orden en el catálogo público; el control se etiqueta
+«Marca y modelo». Los órdenes explícitos por precio y el listado privado conservan su
+comportamiento. No cambian esquema, funciones SQL, endpoints ni forma de respuesta.
+
+## Fotografías y rotación diaria del Home, 12 de noviembre de 2026
+
+Por solicitud del propietario, los mensajes iniciales `welcome`, `decants` y `full-bottles`
+resuelven sus tres imágenes desde los vínculos vigentes del catálogo público: un perfume
+árabe (`arabic`), uno de diseñador (`designer`) y uno de nicho (`niche`). Se usa la foto
+principal actual, conservando su URL y definición; reemplazarla en el catálogo se refleja
+en la siguiente lectura del Home. Se recorre toda la paginación del repositorio existente.
+
+La selección aleatoria es estable durante cada fecha de `America/Guayaquil` y cambia al
+consultar después de medianoche. Por mensaje y categoría se barajan ciclos de productos,
+sin repetir el del día anterior mientras haya alternativas y el conjunto no cambie. No
+requiere tareas programadas, estado persistente ni migraciones. Si falta una categoría con
+fotografía, se usa el símbolo alternativo existente, sin mezclar categorías ni recuperar
+una foto antigua. Los demás mensajes conservan las imágenes configuradas; la administración
+devuelve su configuración guardada y no la selección diaria calculada. Se mantienen la
+forma de la respuesta, los permisos, los repositorios, el diseño aprobado y las dependencias.
+
+## Home aprobado, 8 de noviembre de 2026
+
+El propietario solicita implementar `home-menu-principal.html` usando los recortes sin fondo.
+Se completa el requisito de mensajes destacados dentro del módulo `commerce`, reutilizando
+sus capas, UoW, permisos `commerce:write`, biblioteca y panel de configuración. Los modelos
+`FeaturedMessageModel` y `FeaturedMessageImageModel` definen contenido ES/EN, enlaces internos,
+orden, fechas UTC, activo, versión e imágenes ordenadas. Alembic genera el esquema desde modelos;
+las funciones `commerce_message_*` realizan la persistencia mediante `pg_call.py`.
+`GET /api/v1/home/messages` devuelve solo mensajes activos y vigentes. La administración usa
+`GET/POST /api/v1/admin/home/messages` y `PUT /api/v1/admin/home/messages/{id}`, con sesión,
+permisos, CSRF, auditoría y control de versión. Las fotos privadas de comprobantes no se admiten.
+
+La portada se implementa en `features/catalog/{HomePage.astro,home.ts}` y usa la ruta de inicio
+existente. La gestión se integra en `features/settings/{FeaturedMessages.astro,messages.ts}`,
+sin rutas de administración nuevas. Los recursos y pruebas siguen las ubicaciones autorizadas.
+Los datos numéricos se consultan al catálogo; la promoción de ejemplo permanece desactivada.
+Se conservan stack y límites de módulos, sin dependencias nuevas.
+
+Activado el 9 de noviembre con la migración `de252c02c932`, generada desde modelos y revisada.
+`beront inicializar-home` instala los seis mensajes iniciales de forma idempotente, sin
+sobrescribir ediciones; cinco están activos y la promoción de ejemplo queda desactivada.
+El propietario autoriza reiniciar solo el backend para cargar los endpoints nuevos.
+La portada ya sustituye al estudio en `/[locale]/`; el estudio conserva su ruta de catálogo.
+
+## Fotografías Inkscape R02 integradas el 8 de noviembre de 2026
+
+El propietario aprueba implementar R02 en el producto. Los 132 PNG maestros permanecen en
+`design/assets/`; el almacenamiento existente los normaliza a WebP con alfa, sin pérdida y
+con conservación exacta de RGBA. Las entradas opacas mantienen su normalización habitual.
+No cambian `/media/<identificador>.webp`, el esquema, los permisos, las dependencias ni los módulos.
+
+El comando `beront importar-recortes --manifiesto <ruta> [--solo-validar]` valida las huellas
+de originales y PNG contra el manifiesto aprobado. `catalog/application/import_photos.py`
+reemplaza los 135 vínculos mediante los repositorios existentes en una transacción; conserva
+orden, textos alternativos y archivos originales de biblioteca. Identificadores deterministas
+permiten omitir vínculos ya aplicados; un vínculo original modificado se rechaza para revisión.
+No escribe productos, variantes, precios ni inventario. El adaptador del manifiesto pertenece a
+`catalog/infrastructure/approved_images.py`; las pruebas siguen los patrones existentes.
+
+El frontend comparte las imágenes del backend en carrusel, estudio, ficha y carrito. Se retiran
+los fondos ovalados, la mezcla de color y el muestreo de brillo de `photos.ts`; el color ambiental
+del decant pondera el alfa. Delina permanece sin foto. Esta decisión sustituye el estado de
+espera de R02 descrito en el apartado histórico siguiente.
+
+## Navegación aprobada integrada el 7 de noviembre de 2026
+
+El botón inferior central y el panel de `design/prototypes/home-menu-principal.html` se integran
+en `SiteLayout.astro` y `AdminLayout.astro` mediante los componentes compartidos
+`MainMenu.astro` y `main-menu.ts`. Reutilizan la sesión y los permisos de `/api/v1/auth/session`,
+las rutas existentes, el carrito y el panel de accesibilidad. Los controles privados permanecen
+ocultos hasta validar la sesión; el backend conserva la autorización de los recursos.
+El carrito mantiene sus accesos de cabecera, panel y resumen; se retira el botón flotante central.
+La prueba `frontend/tests/e2e/application-menu.spec.ts` sigue el patrón de pruebas existente.
+No se añaden módulos, endpoints, dependencias ni cambios de esquema.
+
+La portada con mensajes destacados no forma parte de esta integración de navegación y continúa
+pendiente de su backend. El propietario descarta las imágenes sin fondo; se mantienen las fotos
+y la presentación actuales, sin proceso nuevo de derivados en la aplicación. Posteriormente
+solicita el ensayo Inkscape R01 y su ampliación R02 a todo el catálogo, con solo los frascos;
+ambos se realizan exclusivamente en `design/` y R02 espera revisión visual. No cambia el
+contrato de fotografías del backend ni se incorpora un proceso de derivados al producto.
+
+## Memoria documental solicitada el 4 de noviembre de 2026
+
+El propietario pidió crear `project_memory.md` si no existía y registrar las decisiones, el
+estado actual y el historial de cambios por prototipo y del software principal. Se autoriza ese
+archivo en la raíz como memoria documental; no sustituye las reglas de `AGENTS.md`, los contratos
+de esta arquitectura ni las aprobaciones de `docs/DESIGN_APPROVALS.md`.
+
+## Alineación backend/frontend del 2 de noviembre de 2026
+
+- `GET /api/v1/admin/inventory` y `/movements` devuelven `product_id`, `product_name`, `brand_name` y
+  `volume_ml`; el listado de saldos acepta `kind` y `q`. El frontend no reconstruye nombres.
+- Guardar las opciones de un perfume (`accords`, `usages`, `profiles`) solo reemplaza los vínculos de
+  opciones activas; los de opciones desactivadas se conservan.
+- Los nombres de categorías, públicos y clasificaciones se leen de `facets.definitions`; el frontend
+  no contiene listas de negocio.
+- Ubicaciones nuevas dentro de patrones existentes: `frontend/src/features/admin/options.ts`,
+  `frontend/tests/unit/i18n.test.ts`, `backend/tests/integration/test_cli.py` y las migraciones
+  `87313231bdf2` y `49ce23c2f0c8`.
+
+## Ampliación autorizada el 1 de noviembre de 2026
+
+- La carpeta `bd/` se traslada a `backend/bd/` y las funciones SQL pierden las carpetas de versión
+  `vNNNN`: cada archivo contiene la definición vigente y el historial queda en Git. La cadena de
+  ocho migraciones se sustituye por una migración inicial única generada desde los modelos, que
+  también crea el esquema `beront_api` e instala las funciones. Se retiran las huellas SHA-256 de
+  las fuentes SQL; un cambio posterior de una función se instala con una migración nueva.
+- Las migraciones y la aplicación usan la base PostgreSQL local `beront-bd`.
+- La administración local se invoca con el script de consola `beront` (`[project.scripts]` en
+  `backend/pyproject.toml`, implementado en `beront/cli.py`) en lugar de `flask --app`.
+
 ## Ampliación autorizada el 31 de octubre de 2026
 
 El propietario aprobó, en esta fecha, el checkout, el seguimiento, la biblioteca de fotografías,
@@ -43,10 +226,26 @@ carrusel negros, tarjetas con presentación y cantidad, y carrito como diálogo 
 nuevos dentro de los patrones ya autorizados: `features/catalog/{Hero,ProductCard}.astro`,
 `features/catalog/{cards,hero}.ts`, `shared/components/{stepper,photos}.ts`.
 
+Estudio de decants (2 de noviembre de 2026, aprobado por el propietario): la página de decants es
+`features/catalog/DecantStudio.astro` y `studio.ts` (más `perfume.ts`), con la lista renderizada en
+el servidor y actualizada sin recargar mediante la misma URL. La cotización del carrito añade por
+línea `product_slug`, `image_url` y `options` (presentaciones hermanas del mismo tipo, activas y no
+agotadas) para mostrar el frasco y cambiar mililitros; el stock se vuelve a validar en cada
+cotización. Componentes compartidos nuevos dentro de `shared/components/`: `vial.ts`, `motion.ts`,
+`AccessibilityPanel.astro` y `accessibility.ts` (preferencias en `localStorage` bajo
+`beront.a11y.v1`, aplicadas como atributos `data-text`, `data-contrast` y `data-motion` de `html`;
+sin scripts en línea por la política CSP). Los tamaños de letra se expresan en `rem`; el
+estudio usa Container Queries en 600/840/1200/1600 px.
+
+Carrusel de perfumes completos (2 de noviembre de 2026, aprobado): `features/catalog/CylinderPage.astro`,
+`cylinder.ts` y `cylinder-layout.ts`. Comparte con el estudio de decants `StudioFilters.astro`,
+`CartSummary.astro`, `liveFilters.ts`, `summary.ts` y `perfume.ts`. Se retiraron `CatalogPage.astro`,
+`Hero.astro`, `ProductCard.astro`, `cards.ts`, `filters.ts` y `hero.ts`.
+
 Ubicaciones y archivos de esta ampliación, dentro de los patrones ya autorizados:
 
 ```text
-bd/catalog/funciones/v0004/ y bd/orders/funciones/v0003/
+backend/bd/catalog/funciones/ y backend/bd/orders/funciones/
 backend/src/beront/modules/orders/infrastructure/mailer.py
 backend/tests/{integration/test_classifications.py,unit/test_mailer.py}
 frontend/src/pages/[locale]/{checkout.astro,orders/index.astro}
@@ -69,8 +268,8 @@ y continúa aplicando donde no contradiga esta ampliación.
 - SQLAlchemy conserva la definición única de tablas y relaciones para Alembic; la aplicación
   deja de utilizar consultas y sesiones ORM. Los modelos se organizan en
   `backend/src/beront/shared/infrastructure/modelos/<modulo>/`.
-- Las funciones SQL se organizan por módulo y versión en `bd/<modulo>/funciones/vNNNN/`,
-  una función por archivo. Alembic instala versiones inmutables y verifica sus huellas.
+- Las funciones SQL se organizan por módulo en `backend/bd/<modulo>/funciones/`, una función por
+  archivo con su definición vigente y sin carpetas de versión. Alembic las instala desde esa carpeta.
 - `shared/infrastructure/pg_call.py` usa nombres de función permitidos y parámetros enlazados.
   Los endpoints delegan en casos de uso y repositorios; no construyen SQL ni aceptan destinos SQL.
 - Solo existe un administrador, creado mediante CLI y protegido también por unicidad en PostgreSQL.
@@ -98,7 +297,7 @@ y continúa aplicando donde no contradiga esta ampliación.
 Ubicaciones adicionales autorizadas por el nuevo alcance:
 
 ```text
-bd/{comunes,identity,catalog,inventory,media,commerce,orders}/funciones/vNNNN/<funcion>.sql
+backend/bd/{comunes,identity,catalog,inventory,media,commerce,orders}/funciones/<funcion>.sql
 backend/src/beront/shared/infrastructure/modelos/{identity,catalog,inventory,media,commerce,orders}/
 backend/src/beront/shared/infrastructure/{pg_call,sql_migrations}.py
 backend/semillas/catalogo/{catalogo.json,imagenes/<archivo>.webp}
@@ -342,7 +541,7 @@ Búsqueda PostgreSQL parametrizada y paginada; ampliar solo tras mediciones y ap
 
 ```text
 /
-├── AGENTS.md, .gitignore, README.md
+├── AGENTS.md, .gitignore, README.md, project_memory.md
 ├── docs/
 │   ├── ARCHITECTURE.md                 # Arquitectura aprobada
 │   ├── LOCAL.md                        # Configuración y verificación local
@@ -358,6 +557,7 @@ Búsqueda PostgreSQL parametrizada y paginada; ampliar solo tras mediciones y ap
 ├── backend/
 │   ├── .gitignore, .env.example, .python-version, pyproject.toml, uv.lock
 │   ├── alembic.ini
+│   ├── bd/<modulo>/funciones/<funcion>.sql
 │   ├── migrations/env.py, script.py.mako, versions/<revision>.py
 │   ├── src/beront/
 │   │   ├── __init__.py, app.py, bootstrap.py, config.py, cli.py
@@ -397,28 +597,13 @@ las capas, componentes .astro y lógica .ts dentro de funcionalidades y archivos
 en las ubicaciones designadas. cart no tiene modelos/repositories propios.
 No añadir ubicaciones sin aprobación. Los artefactos de gestores/build son ignorados.
 
-### Excepción temporal autorizada: catálogo importado
+### Catálogo importado (retirado)
 
-El propietario autorizó el 25 de octubre de 2026 una demostración con datos e imágenes
-de su HTML, antes de conectar el catálogo comercial. Esta excepción permite conservar
-los recursos de la demostración hasta completar su migración; no son archivos de limpieza.
-
-Ubicaciones adicionales autorizadas para esta demostración:
-- `frontend/public/temporal/`: catálogo JSON, fotografías WebP y README de transición.
-- `frontend/src/pages/temporal/[...path].ts`: servidor local del prototipo y API simulada.
-- `frontend/src/features/catalog/temporary.ts`: consultas y cotización de demostración.
-- `design/prototypes/catalog-import.html`: prototipo con el catálogo proporcionado.
-- `design/assets/catalog-import.js` y `catalog-import.css`: interacción y ajustes del prototipo.
-- `design/prototypes/catalog-refined.html` y `design/assets/catalog-refined.{js,css}`:
-  nueva revisión solicitada, con controles, fondos y recorrido simplificados.
-- `docs/TEMPORARY_CATALOG.md`: origen, límites y procedimiento de retirada.
-
-El prototipo se sirve en `/temporal/` únicamente durante desarrollo local. Usa peticiones
-HTTP a `/temporal/api/v1/` y URLs de imágenes `/temporal/media/`. La aplicación y los
-contratos Flask reales conservan su comportamiento. No simula autenticación administrativa,
-no escribe en PostgreSQL y no envía conversaciones de WhatsApp. La ausencia de inventario
-numérico en el archivo se conserva como disponibilidad sin confirmar.
-La revisión visual importada se somete a aprobación; no sustituye la revisión 01 aprobada.
+La demostración con datos e imágenes del HTML del propietario se retiró del frontend el
+1 de noviembre de 2026 (`frontend/public/temporal/`, `frontend/src/pages/temporal/`,
+`frontend/src/features/catalog/temporary.ts`, la excepción de middleware y sus pruebas). La
+única fuente de perfumes es la semilla `backend/semillas/catalogo/` (130 perfumes, 132
+fotografías), que se importa con `uv run beront importar-catalogo`.
 
 ## E. Flujo y contratos
 
@@ -540,7 +725,11 @@ Revisar móvil/escritorio, teclado, estados y ES/EN.
 docs/DESIGN_APPROVALS.md registra revisión, fecha y referencia verificable.
 
 Mínimo 320 px; breakpoints 640/768/1024/1280.
-Pruebas 360/390/768/1024/1440; panel móvil y lateral escritorio;
+Rangos de referencia de diseño (regla 10 de AGENTS.md): compacto <600, mediano 600-839,
+expandido 840-1199, grande 1200-1599 y extragrande >=1600; los breakpoints de
+implementación anteriores se mantienen hasta que el propietario apruebe ajustarlos.
+Pruebas 360/390/768/1024/1440, más un ancho extragrande (1920); panel de accesibilidad
+(texto, contraste, animaciones); panel móvil y lateral escritorio;
 formularios de una columna en móvil, sin desbordamiento, objetivos 44 px,
 foco visible, contraste AA, movimiento reducido.
 Chromium, Firefox y WebKit.
@@ -653,10 +842,56 @@ Registrar las aprobaciones en docs/DESIGN_APPROVALS.md.
 La aprobación de arquitectura no equivale a aprobación visual.
 Respetar los tokens y la identidad visual aprobados.
 
-## 10. Responsividad y accesibilidad
-Verificar los tamaños y navegadores definidos en la arquitectura.
-Mantener navegación por teclado, foco visible, etiquetas y contraste.
-No dar una vista por terminada si falla en los tamaños acordados.
+## 10. UX/UI, accesibilidad y responsividad
+Aplica a los diseños ya aceptados (de forma retroactiva), a los prototipos nuevos
+y al proyecto final. Son obligatorios los estándares de UX/UI, usabilidad,
+accesibilidad y diseño responsivo y adaptativo.
+
+Versiones por dispositivo:
+- Cada prototipo incluye versiones adaptadas para Android, iPhone (iOS), tablets,
+  laptops, computadoras de escritorio, monitores LCD, televisores y otros
+  dispositivos compatibles.
+- Si una propuesta tiene alternativas (A, B, C, etc.), cada una dispone de sus propias
+  versiones responsivas y conserva su identidad visual, estructura y funcionalidades.
+  No basta con adaptar la alternativa elegida ni mostrar solo la versión de escritorio.
+
+Rangos de ancho de referencia (dp, pt o píxeles CSS según la plataforma):
+compacto (menos de 600), mediano (600-839), expandido (840-1199),
+grande (1200-1599) y extragrande (1600 en adelante). Pueden ajustarse según el
+contenido real y el framework. El diseño se adapta a resoluciones, orientaciones y
+métodos de interacción (táctil, puntero, teclado, control remoto), reorganizando
+los elementos sin desbordamientos, superposiciones ni pérdida de funcionalidades.
+
+Implementación responsiva:
+- Respetar la arquitectura, los patrones, las convenciones y las tecnologías del
+  proyecto. En aplicaciones nativas, usar los mecanismos adaptativos del framework.
+- Priorizar componentes reutilizables, Design Tokens centralizados, CSS Grid, Flexbox,
+  unidades relativas, clamp() y Container Queries cuando correspondan.
+- Usar Media Queries solo cuando estén justificadas; evitar su proliferación,
+  duplicación y dispersión.
+- No introducir parches CSS acumulativos, valores arbitrarios, !important injustificado,
+  estilos redundantes ni cambios arquitectónicos innecesarios.
+- Reutilizar componentes y estilos compartidos sin perder las diferencias visuales
+  entre alternativas.
+
+Accesibilidad:
+- Botón o panel de accesibilidad visible, consistente y funcional en todas las
+  versiones, con ajuste del tamaño del texto, mejora del contraste y reducción de
+  animaciones, sin sustituir las herramientas nativas de accesibilidad.
+- Cumplir WCAG 2.2 nivel AA: legibilidad, navegación por teclado, lectores de pantalla,
+  controles táctiles accesibles, foco visible, etiquetas y contraste, y navegación con
+  control remoto en televisores.
+- Mantener coherencia visual, jerarquía de contenidos y experiencia consistente entre
+  dispositivos.
+
+Proceso:
+- Usar la skill interna /design, cuando esté disponible, al crear, evaluar, mejorar e
+  implementar diseños.
+- Antes de modificar una interfaz, analizar la arquitectura y las soluciones existentes
+  para evitar duplicaciones, regresiones y cambios innecesarios.
+- Verificar los tamaños y navegadores definidos en la arquitectura y los rangos de
+  referencia, en cada prototipo y alternativa, antes de darlos por terminados.
+  No dar una vista por terminada si falla en alguno de ellos.
 
 ## 11. Iconografía
 Usar exclusivamente iconos SVG revisados.
@@ -709,6 +944,17 @@ Informar qué cambió, qué se verificó y cualquier limitación real.
 No afirmar que una prueba pasó si no se ejecutó.
 Actualizar documentación cuando cambie un contrato aprobado.
 Trabajar solo en ejecución local durante esta etapa.
+
+## 17. Servidores locales y migraciones
+No detener, reiniciar ni reemplazar los servidores de backend y frontend que el
+propietario tenga levantados.
+Para revisar o probar, usar el backend del propietario y levantar otro servidor de
+frontend en un puerto libre; detenerlo al terminar.
+Las pruebas que necesiten datos propios (existencias, pedidos) usan una base y
+servidores temporales, nunca la base del propietario.
+Las migraciones Alembic que requieran los cambios propios se generan desde los
+modelos, se revisan y se aplican a la base local sin pedir confirmación adicional;
+siguen vigentes las reglas del apartado 13.
 ```
 
 

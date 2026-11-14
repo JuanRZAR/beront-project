@@ -1,7 +1,7 @@
 from flask import Blueprint, current_app, g
 
 from beront.modules.identity.presentation.decorators import require_auth, require_permission
-from beront.modules.inventory.presentation.schemas import AdjustmentBody
+from beront.modules.inventory.presentation.schemas import AdjustmentBody, BalanceQuery
 from beront.modules.inventory.presentation.serializers import balance_data, movement_data
 from beront.shared.presentation.schemas import PageQuery, json_body, query_body
 
@@ -13,9 +13,12 @@ def make_blueprint():
     @require_auth
     @require_permission("inventory:read")
     def balances():
-        params = query_body(PageQuery)
+        params = query_body(BalanceQuery)
         items, total = current_app.extensions["beront"].inventory.list_balances(**params)
-        return {"data": [balance_data(item) for item in items], "meta": {**params, "total": total}}
+        return {
+            "data": [balance_data(*item) for item in items],
+            "meta": {"page": params["page"], "page_size": params["page_size"], "total": total},
+        }
 
     @bp.get("/movements")
     @require_auth
@@ -23,7 +26,10 @@ def make_blueprint():
     def movements():
         params = query_body(PageQuery)
         items, total = current_app.extensions["beront"].inventory.list_movements(**params)
-        return {"data": [movement_data(item) for item in items], "meta": {**params, "total": total}}
+        return {
+            "data": [movement_data(*item) for item in items],
+            "meta": {**params, "total": total},
+        }
 
     @bp.post("/adjustments")
     @require_auth

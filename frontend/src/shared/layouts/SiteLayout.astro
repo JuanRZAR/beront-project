@@ -2,6 +2,9 @@
 import "../styles/global.css";
 import Icon from "../components/Icon.astro";
 import CartDialog from "../../features/cart/CartDialog.astro";
+import AccessibilityPanel from "../components/AccessibilityPanel.astro";
+import MainMenu from "../components/MainMenu.astro";
+import { catalogOnly, cartEnabled } from "../../features/catalog/storefront";
 import { translate, type Locale } from "../i18n";
 interface Props {
   title: string;
@@ -12,6 +15,7 @@ interface Props {
 }
 const { title, locale, kind, current, cart = false } = Astro.props;
 const t = translate(locale);
+const CartControl = catalogOnly ? "button" : "a";
 function languageUrl(language: string) {
   const url = new URL(Astro.url);
   url.pathname = url.pathname.replace(
@@ -39,7 +43,7 @@ function languageUrl(language: string) {
     />
     <link rel="icon" href="data:," />
   </head>
-  <body class="storefront">
+  <body class="storefront has-main-menu">
     <a class="skip" href="#main">
       {t("skip")}
     </a>
@@ -47,6 +51,14 @@ function languageUrl(language: string) {
       <div class="wrap">
         <header class="site-header">
           <nav class="primary-nav" aria-label={t("catalog")}>
+            {catalogOnly && (
+              <a
+                href={`/${locale}/`}
+                aria-current={!kind && !current ? "page" : undefined}
+              >
+                {t("home")}
+              </a>
+            )}
             <a
               href={`/${locale}/catalog/decants`}
               aria-current={kind === "decant" ? "page" : undefined}
@@ -64,13 +76,15 @@ function languageUrl(language: string) {
             BÉRONT
           </a>
           <div class="header-actions">
-            <a
-              class="header-link"
-              href={`/${locale}/orders`}
-              aria-current={current === "orders" ? "page" : undefined}
-            >
-              {t("myOrder")}
-            </a>
+            {!catalogOnly && (
+              <a
+                class="header-link"
+                href={`/${locale}/orders`}
+                aria-current={current === "orders" ? "page" : undefined}
+              >
+                {t("myOrder")}
+              </a>
+            )}
             <nav
               class="languages"
               aria-label={locale === "es" ? "Idioma" : "Language"}
@@ -89,18 +103,22 @@ function languageUrl(language: string) {
                 EN
               </a>
             </nav>
-            <a
-              class="cart-link"
-              href={`/${locale}/checkout`}
-              aria-current={current === "checkout" ? "page" : undefined}
-              data-open-cart={cart ? "" : undefined}
-            >
-              <Icon name="bag" />
-              <span class="cart-label">{t("cart")}</span>
-              <span class="cart-count" data-cart-count>
-                0
-              </span>
-            </a>
+            <AccessibilityPanel locale={locale} />
+            {cartEnabled && (
+              <CartControl
+                class="cart-link"
+                type={catalogOnly ? "button" : undefined}
+                href={catalogOnly ? undefined : `/${locale}/checkout`}
+                aria-current={current === "checkout" ? "page" : undefined}
+                data-open-cart={cart || catalogOnly ? "" : undefined}
+              >
+                <Icon name="bag" />
+                <span class="cart-label">{t("cart")}</span>
+                <span class="cart-count" data-cart-count>
+                  0
+                </span>
+              </CartControl>
+            )}
           </div>
         </header>
       </div>
@@ -118,10 +136,15 @@ function languageUrl(language: string) {
           </div>
           <nav class="footer-nav" aria-label={t("footerShop")}>
             <h2>{t("footerShop")}</h2>
+            {catalogOnly && <a href={`/${locale}/`}>{t("home")}</a>}
             <a href={`/${locale}/catalog/decants`}>{t("decants")}</a>
             <a href={`/${locale}/catalog/full-bottles`}>{t("bottles")}</a>
-            <a href={`/${locale}/orders`}>{t("myOrder")}</a>
-            <a href={`/${locale}/admin/login`}>{t("adminAccess")}</a>
+            {!catalogOnly && (
+              <>
+                <a href={`/${locale}/orders`}>{t("myOrder")}</a>
+                <a href={`/${locale}/admin/login`}>{t("adminAccess")}</a>
+              </>
+            )}
           </nav>
           <div class="footer-shipping">
             <h2>{t("footerDelivery")}</h2>
@@ -134,7 +157,8 @@ function languageUrl(language: string) {
         </div>
       </div>
     </footer>
-    {cart && <CartDialog locale={locale} />}
+    {cartEnabled && (cart || catalogOnly) && <CartDialog locale={locale} />}
+    <MainMenu locale={locale} currentLabel={title} catalogOnly={catalogOnly} />
     <div id="toast" class="toast" role="status" hidden></div>
     <script>
       import "../../features/cart/header";

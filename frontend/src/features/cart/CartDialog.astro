@@ -1,6 +1,7 @@
 ---
 import Icon from "../../shared/components/Icon.astro";
 import { translate, type Locale } from "../../shared/i18n";
+import { catalogOnly } from "../catalog/storefront";
 interface Props {
   locale: Locale;
 }
@@ -33,17 +34,24 @@ const t = translate(locale);
       <strong id="cart-total">—</strong>
     </div>
     <p class="hint">{t("shippingNotIncluded")}</p>
-    <a
-      id="continue-checkout"
-      class="button champagne full"
-      href={`/${locale}/checkout`}
+    {!catalogOnly && (
+      <a
+        id="continue-checkout"
+        class="button champagne full"
+        href={`/${locale}/checkout`}
+      >
+        {t("continueCheckout")}
+      </a>
+    )}
+    <button
+      id="continue-whatsapp"
+      type="button"
+      class:list={["button full", catalogOnly ? "champagne" : "outline"]}
     >
-      {t("continueCheckout")}
-    </a>
-    <button id="continue-whatsapp" type="button" class="button outline full">
       <Icon name="whatsapp" />
       <span>{t("continueWhatsApp")}</span>
     </button>
+    {catalogOnly && <p class="hint">{t("whatsappConfirmation")}</p>}
     <p id="whatsapp-unavailable" class="hint" hidden>
       {t("whatsappMissing")}
     </p>
@@ -56,17 +64,3 @@ const t = translate(locale);
     </button>
   </div>
 </dialog>
-<button
-  type="button"
-  id="floating-cart"
-  class="floating-cart"
-  aria-haspopup="dialog"
-  data-open-cart
-  hidden
->
-  <span>{t("viewCart")}</span>
-  <span class="floating-count" data-cart-count>
-    0
-  </span>
-  <Icon name="next" />
-</button>

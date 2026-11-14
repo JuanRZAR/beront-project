@@ -41,6 +41,9 @@ if (raw) {
         brand_id: values.get("brand_id"),
         slug: values.get("slug"),
         audience: values.get("audience"),
+        accords: values.getAll("accords"),
+        usages: values.getAll("usages"),
+        profiles: values.getAll("profiles"),
         description_es: values.get("description_es"),
         description_en: values.get("description_en"),
       };
@@ -160,11 +163,14 @@ if (raw) {
     bindForm(
       createVariant,
       async (values) => {
+        const chosen = createVariant.querySelector<HTMLSelectElement>(
+          '[name="presentation"]',
+        )!.selectedOptions[0]!;
         const result = await api<Variant>(
           "/api/v1/admin/products/" + state.product!.id + "/variants",
           jsonRequest("POST", {
-            kind: values.get("kind"),
-            volume_ml: values.get("volume_ml"),
+            kind: chosen.dataset.kind,
+            volume_ml: chosen.dataset.volume,
             price: values.get("price"),
           }),
         );
@@ -185,6 +191,7 @@ if (raw) {
           !!result.data.active;
         document.getElementById("variant-list")!.append(fragment);
         bindVariant(form);
+        chosen.remove();
         createVariant.reset();
         toast(t("variantCreated"));
       },

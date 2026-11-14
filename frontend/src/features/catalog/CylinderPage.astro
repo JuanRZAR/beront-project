@@ -1,0 +1,216 @@
+---
+import Layout from "../../shared/layouts/SiteLayout.astro";
+import Icon from "../../shared/components/Icon.astro";
+import Notice from "../../shared/components/Notice.astro";
+import Pagination from "../../shared/components/Pagination.astro";
+import ProductImage from "../../shared/components/ProductImage.astro";
+import StudioFilters from "./StudioFilters.astro";
+import CartSummary from "./CartSummary.astro";
+import { perfumePayload } from "./perfume";
+import { cartEnabled } from "./storefront";
+import { translate, type Locale } from "../../shared/i18n";
+import { serverGet } from "../../shared/http/server";
+import { errorMessage } from "../../shared/http/errors";
+import type { Product, Facets, Envelope } from "../../shared/http/contracts";
+interface Props {
+  locale: Locale;
+}
+const { locale } = Astro.props;
+const t = translate(locale);
+const query = new URLSearchParams(Astro.url.search);
+query.delete("selected");
+query.set("kind", "full_bottle");
+query.set("locale", locale);
+let result: Envelope<Product[]> = {
+  data: [],
+  meta: { page: 1, page_size: 24, total: 0 },
+};
+let facets: Facets = {
+  brands: [],
+  volumes_ml: [],
+  classifications: [],
+  audiences: [],
+  accords: [],
+  usages: [],
+  profiles: [],
+  kinds: [],
+  definitions: {
+    categories: [],
+    audiences: [],
+    presentations: [],
+    accords: [],
+    usages: [],
+    profiles: [],
+  },
+};
+let error = "";
+try {
+  [result, { data: facets }] = await Promise.all([
+    serverGet<Product[]>("/api/v1/catalog/products?" + query),
+    serverGet<Facets>("/api/v1/catalog/facets?locale=" + locale),
+  ]);
+} catch (err) {
+  error = errorMessage(err, locale);
+  Astro.response.status =
+    err && typeof err === "object" && "status" in err
+      ? Number(err.status)
+      : 503;
+}
+const selectedSlug = Astro.url.searchParams.get("selected") ?? "";
+const initial =
+  result.data.find((product) => product.slug === selectedSlug) ??
+  result.data.find((product) => product.available) ??
+  result.data[0];
+const hasFilters = [...query].some(
+  ([key, value]) =>
+    !["page", "page_size", "sort", "locale", "kind"].includes(key) && value,
+);
+const payload = (product: Product) =>
+  perfumePayload(product, "full_bottle", facets.definitions, locale);
+const label = (product: Product) => product.brand.name + " " + product.name;
+---
+
+<Layout title={t("bottles")} locale={locale} kind="full_bottle" cart>
+  <main id="main" class="studio cylinder" data-cylinder>
+    <section
+      class="cyl-section"
+      aria-roledescription={t("carousel")}
+      aria-label={t("bottles")}
+    >
+      <div class="wrap studio-inner">
+        <h1 class="cyl-title">{t("bottles")}</h1>
+        <div class="cyl-wrap">
+          <div class="cyl-ghost" data-ghost aria-hidden="true">
+            {[0, 1, 2].map(() => (
+              <span>{initial?.name}</span>
+            ))}
+          </div>
+          <div class="cyl" data-cyl>
+            {result.data.map((product) => (
+              <button
+                type="button"
+                class="cyl-item"
+                tabindex="-1"
+                aria-hidden="true"
+                data-product={payload(product)}
+              >
+                <span class="cyl-photo">
+                  <ProductImage
+                    image={product.images[0]}
+                    locale={locale}
+                    name={label(product)}
+                    eager
+                  />
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+        <div class="cyl-panel">
+          <button
+            type="button"
+            class="cyl-nav cyl-prev"
+            data-prev
+            aria-label={t("previous")}
+          >
+            <Icon name="previous" />
+          </button>
+          <div class="cyl-info">
+            <p class="studio-meta" data-meta></p>
+            <div class="cyl-selection-heading">
+              <h2 id="cyl-name" data-name>
+                {initial ? initial.name : t("studioNothing")}
+              </h2>
+              <div
+                class="size-buttons"
+                data-sizes
+                role="group"
+                aria-label={t("sizeChoice")}
+              ></div>
+            </div>
+            <p class="studio-kind" data-kind></p>
+            <div class="studio-buy">
+              <p class="studio-price" data-price>
+                —
+              </p>
+              {cartEnabled && (
+                <button
+                  type="button"
+                  class="button champagne studio-add"
+                  data-add
+                  disabled
+                >
+                  <span data-add-label>{t("quickAdd")}</span>
+                </button>
+              )}
+            </div>
+            <a class="text-button studio-detail" data-link href="#" hidden>
+              {t("viewProduct")}
+            </a>
+            <p class="sr-only" role="status" data-announce></p>
+          </div>
+          <button
+            type="button"
+            class="cyl-nav cyl-next"
+            data-next
+            aria-label={t("next")}
+          >
+            <Icon name="next" />
+          </button>
+        </div>
+        <CartSummary locale={locale} />
+        <div
+          class="cyl-thumbs"
+          data-thumbs
+          role="group"
+          aria-label={t("chooseOne")}
+        >
+          {result.data.map((product) => (
+            <button type="button" class="cyl-thumb" aria-label={label(product)}>
+              <ProductImage
+                image={product.images[0]}
+                locale={locale}
+                name={label(product)}
+              />
+            </button>
+          ))}
+        </div>
+      </div>
+    </section>
+    <div class="wrap studio-inner cyl-filters">
+      <section class="studio-list" aria-label={t("filters")}>
+        <StudioFilters
+          locale={locale}
+          query={query}
+          facets={facets}
+          pathname={Astro.url.pathname}
+          formId="cylinder-filters"
+        />
+        <div data-results>
+          {error ? (
+            <Notice locale={locale} message={error} retry />
+          ) : result.data.length ? (
+            <p class="studio-count" aria-live="polite">
+              {result.meta?.total ?? 0} {t("perfumes")}
+            </p>
+          ) : (
+            <div class="empty-state">
+              <p>{t(hasFilters ? "noResultsHelp" : "emptyCatalogHelp")}</p>
+            </div>
+          )}
+          {result.meta && (
+            <Pagination
+              locale={locale}
+              page={result.meta.page}
+              pageSize={result.meta.page_size}
+              total={result.meta.total}
+            />
+          )}
+        </div>
+      </section>
+    </div>
+  </main>
+</Layout>
+<script>
+  import "./cylinder";
+</script>

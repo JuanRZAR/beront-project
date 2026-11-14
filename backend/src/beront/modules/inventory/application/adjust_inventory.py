@@ -11,9 +11,9 @@ class InventoryService:
     def __init__(self, uow_factory):
         self.uow_factory = uow_factory
 
-    def list_balances(self, page=1, page_size=24):
+    def list_balances(self, page=1, page_size=24, kind=None, q=""):
         with self.uow_factory() as uow:
-            return uow.stock.balances(page, page_size)
+            return uow.stock.balances(page, page_size, kind, q)
 
     def list_movements(self, page=1, page_size=24):
         with self.uow_factory() as uow:

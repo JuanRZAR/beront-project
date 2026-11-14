@@ -20,7 +20,10 @@ class StockAvailability:
             key = (item.kind, target) if aggregate else (item.kind, item.variant_id)
             keys[item.variant_id] = (key, target)
             required[key] += POLICIES[item.kind].required(item.volume_ml, item.quantity)
-        amounts = {kind: self.repository.amounts(kind, list(ids)) for kind, ids in targets.items()}
+        amounts = {
+            kind: self.repository.amounts(kind, list(ids)) if ids else {}
+            for kind, ids in targets.items()
+        }
         return {
             item.variant_id: amounts[item.kind].get(keys[item.variant_id][1], Decimal("0"))
             >= required[keys[item.variant_id][0]]

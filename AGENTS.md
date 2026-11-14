@@ -65,10 +65,56 @@ Registrar las aprobaciones en docs/DESIGN_APPROVALS.md.
 La aprobación de arquitectura no equivale a aprobación visual.
 Respetar los tokens y la identidad visual aprobados.
 
-## 10. Responsividad y accesibilidad
-Verificar los tamaños y navegadores definidos en la arquitectura.
-Mantener navegación por teclado, foco visible, etiquetas y contraste.
-No dar una vista por terminada si falla en los tamaños acordados.
+## 10. UX/UI, accesibilidad y responsividad
+Aplica a los diseños ya aceptados (de forma retroactiva), a los prototipos nuevos
+y al proyecto final. Son obligatorios los estándares de UX/UI, usabilidad,
+accesibilidad y diseño responsivo y adaptativo.
+
+Versiones por dispositivo:
+- Cada prototipo incluye versiones adaptadas para Android, iPhone (iOS), tablets,
+  laptops, computadoras de escritorio, monitores LCD, televisores y otros
+  dispositivos compatibles.
+- Si una propuesta tiene alternativas (A, B, C, etc.), cada una dispone de sus propias
+  versiones responsivas y conserva su identidad visual, estructura y funcionalidades.
+  No basta con adaptar la alternativa elegida ni mostrar solo la versión de escritorio.
+
+Rangos de ancho de referencia (dp, pt o píxeles CSS según la plataforma):
+compacto (menos de 600), mediano (600-839), expandido (840-1199),
+grande (1200-1599) y extragrande (1600 en adelante). Pueden ajustarse según el
+contenido real y el framework. El diseño se adapta a resoluciones, orientaciones y
+métodos de interacción (táctil, puntero, teclado, control remoto), reorganizando
+los elementos sin desbordamientos, superposiciones ni pérdida de funcionalidades.
+
+Implementación responsiva:
+- Respetar la arquitectura, los patrones, las convenciones y las tecnologías del
+  proyecto. En aplicaciones nativas, usar los mecanismos adaptativos del framework.
+- Priorizar componentes reutilizables, Design Tokens centralizados, CSS Grid, Flexbox,
+  unidades relativas, clamp() y Container Queries cuando correspondan.
+- Usar Media Queries solo cuando estén justificadas; evitar su proliferación,
+  duplicación y dispersión.
+- No introducir parches CSS acumulativos, valores arbitrarios, !important injustificado,
+  estilos redundantes ni cambios arquitectónicos innecesarios.
+- Reutilizar componentes y estilos compartidos sin perder las diferencias visuales
+  entre alternativas.
+
+Accesibilidad:
+- Botón o panel de accesibilidad visible, consistente y funcional en todas las
+  versiones, con ajuste del tamaño del texto, mejora del contraste y reducción de
+  animaciones, sin sustituir las herramientas nativas de accesibilidad.
+- Cumplir WCAG 2.2 nivel AA: legibilidad, navegación por teclado, lectores de pantalla,
+  controles táctiles accesibles, foco visible, etiquetas y contraste, y navegación con
+  control remoto en televisores.
+- Mantener coherencia visual, jerarquía de contenidos y experiencia consistente entre
+  dispositivos.
+
+Proceso:
+- Usar la skill interna /design, cuando esté disponible, al crear, evaluar, mejorar e
+  implementar diseños.
+- Antes de modificar una interfaz, analizar la arquitectura y las soluciones existentes
+  para evitar duplicaciones, regresiones y cambios innecesarios.
+- Verificar los tamaños y navegadores definidos en la arquitectura y los rangos de
+  referencia, en cada prototipo y alternativa, antes de darlos por terminados.
+  No dar una vista por terminada si falla en alguno de ellos.
 
 ## 11. Iconografía
 Usar exclusivamente iconos SVG revisados.
@@ -121,3 +167,14 @@ Informar qué cambió, qué se verificó y cualquier limitación real.
 No afirmar que una prueba pasó si no se ejecutó.
 Actualizar documentación cuando cambie un contrato aprobado.
 Trabajar solo en ejecución local durante esta etapa.
+
+## 17. Servidores locales y migraciones
+No detener, reiniciar ni reemplazar los servidores de backend y frontend que el
+propietario tenga levantados.
+Para revisar o probar, usar el backend del propietario y levantar otro servidor de
+frontend en un puerto libre; detenerlo al terminar.
+Las pruebas que necesiten datos propios (existencias, pedidos) usan una base y
+servidores temporales, nunca la base del propietario.
+Las migraciones Alembic que requieran los cambios propios se generan desde los
+modelos, se revisan y se aplican a la base local sin pedir confirmación adicional;
+siguen vigentes las reglas del apartado 13.

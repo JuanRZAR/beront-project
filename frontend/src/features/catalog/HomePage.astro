@@ -1,0 +1,275 @@
+---
+import Layout from "../../shared/layouts/SiteLayout.astro";
+import Icon from "../../shared/components/Icon.astro";
+import Notice from "../../shared/components/Notice.astro";
+import { serverGet } from "../../shared/http/server";
+import { errorMessage } from "../../shared/http/errors";
+import { translate, money, type Locale } from "../../shared/i18n";
+import type {
+  FeaturedMessage,
+  Product,
+  Facets,
+  Envelope,
+} from "../../shared/http/contracts";
+import "../../shared/styles/home.css";
+import { isStorefrontLink } from "./storefront";
+
+interface Props {
+  locale: Locale;
+}
+const { locale } = Astro.props;
+const t = translate(locale);
+let messages: FeaturedMessage[] = [],
+  brands: string[] = [];
+const empty: Envelope<Product[]> = {
+  data: [],
+  meta: { page: 1, page_size: 1, total: 0 },
+};
+let decants = empty,
+  bottles = empty,
+  error = "";
+try {
+  const [home, d, b, facets] = await Promise.all([
+    serverGet<FeaturedMessage[]>("/api/v1/home/messages"),
+    serverGet<Product[]>(
+      `/api/v1/catalog/products?kind=decant&sort=price_asc&page_size=1&locale=${locale}`,
+    ),
+    serverGet<Product[]>(
+      `/api/v1/catalog/products?kind=full_bottle&sort=price_asc&page_size=1&locale=${locale}`,
+    ),
+    serverGet<Facets>("/api/v1/catalog/facets"),
+  ]);
+  messages = home.data.filter((message) =>
+    isStorefrontLink(message.primary_path),
+  );
+  decants = d;
+  bottles = b;
+  brands = facets.data.brands.map((brand) => brand.name);
+} catch (cause) {
+  error = errorMessage(cause, locale);
+  Astro.response.status = 503;
+}
+const summary = (result: Envelope<Product[]>) =>
+  `${result.meta?.total ?? 0} ${t("perfumes")}${result.data[0]?.price_from ? " · " + t("from").toLocaleLowerCase(locale) + " " + money(result.data[0].price_from) : ""}`;
+const validImage = (url: string) => /^\/media\/[a-f0-9]{32}\.webp$/.test(url);
+const internal = (path: string) => `/${locale}${path}`;
+const shortcuts = [
+  {
+    path: "/catalog/decants",
+    title: t("decants"),
+    detail: error ? t("requestFailed") : summary(decants),
+    category: "decants",
+  },
+  {
+    path: "/catalog/full-bottles",
+    title: t("bottles"),
+    detail: error ? t("requestFailed") : summary(bottles),
+    category: "bottles",
+  },
+];
+---
+
+<Layout title={t("home")} locale={locale} cart>
+  <main id="main" class="home-page">
+    <h1 class="sr-only">BÉRONT · {t("home")}</h1>
+    {error ? (
+      <div class="wrap">
+        <Notice locale={locale} message={error} retry />
+      </div>
+    ) : messages.length ? (
+      <section
+        class="home-hero"
+        data-home-carousel
+        aria-roledescription={t("carousel")}
+        aria-label={t("homeMessages")}
+        data-pause-label={t("homePause")}
+        data-play-label={t("homePlay")}
+      >
+        <div class="wrap">
+          <div class="home-slides" data-home-slides aria-live="off">
+            {messages.map((message, index) => {
+              const text = message.content[locale];
+              const images = message.images.filter((image) =>
+                validImage(image.url),
+              );
+              return (
+                <article
+                  class="home-slide"
+                  data-home-slide
+                  data-active={index === 0 ? "" : undefined}
+                  inert={index !== 0}
+                  aria-hidden={index === 0 ? "false" : "true"}
+                  aria-roledescription={t("homeMessage")}
+                  aria-label={`${index + 1} / ${messages.length}`}
+                >
+                  <div class="home-copy">
+                    <p class="home-eyebrow">{text.eyebrow}</p>
+                    <h2>
+                      {text.title} <em>{text.emphasis}</em>
+                    </h2>
+                    <p>{text.body}</p>
+                    {message.stats_kind !== "none" && (
+                      <p class="home-stat">
+                        {summary(
+                          message.stats_kind === "decant" ? decants : bottles,
+                        )}
+                      </p>
+                    )}
+                    <div class="home-actions">
+                      <a
+                        class="button champagne"
+                        href={internal(message.primary_path)}
+                      >
+                        {text.primary_label}
+                      </a>
+                      {message.secondary_path &&
+                        isStorefrontLink(message.secondary_path) && (
+                          <a
+                            class="button outline"
+                            href={internal(message.secondary_path)}
+                          >
+                            {text.secondary_label}
+                          </a>
+                        )}
+                    </div>
+                  </div>
+                  <div class="home-art" aria-hidden="true">
+                    {images.length ? (
+                      images.map((image, i) => (
+                        <span
+                          class:list={[
+                            "home-bottle",
+                            {
+                              "home-bottle-center":
+                                i === Math.floor(images.length / 2),
+                            },
+                          ]}
+                          data-count={images.length}
+                        >
+                          <img
+                            src={image.url}
+                            alt=""
+                            width="500"
+                            height="600"
+                            decoding="async"
+                            loading={index === 0 ? "eager" : "lazy"}
+                          />
+                        </span>
+                      ))
+                    ) : (
+                      <span class="home-symbol">
+                        <Icon name={message.icon} />
+                      </span>
+                    )}
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+          {messages.length > 1 && (
+            <>
+              <div class="home-controls">
+                <button
+                  class="home-control"
+                  type="button"
+                  data-home-prev
+                  aria-label={t("homePrevious")}
+                >
+                  <Icon name="previous" />
+                </button>
+                <div
+                  class="home-dots"
+                  role="group"
+                  aria-label={t("homeMessages")}
+                >
+                  {messages.map((_, i) => (
+                    <button
+                      type="button"
+                      class="home-dot"
+                      data-home-dot={i}
+                      aria-label={`${t("homeGoMessage")} ${i + 1}`}
+                      aria-current={i === 0 ? "true" : undefined}
+                    >
+                      <span />
+                    </button>
+                  ))}
+                </div>
+                <button
+                  class="home-control"
+                  type="button"
+                  data-home-next
+                  aria-label={t("homeNext")}
+                >
+                  <Icon name="next" />
+                </button>
+                <button
+                  class="home-control"
+                  type="button"
+                  data-home-toggle
+                  aria-label={t("homePause")}
+                  aria-pressed="false"
+                >
+                  <span data-home-pause>
+                    <Icon name="pause" />
+                  </span>
+                  <span data-home-play hidden>
+                    <Icon name="play" />
+                  </span>
+                </button>
+                <span class="home-count" data-home-count>
+                  1 / {messages.length}
+                </span>
+              </div>
+              <div class="home-progress" aria-hidden="true">
+                <i />
+              </div>
+              <p class="sr-only" data-home-announce role="status"></p>
+            </>
+          )}
+        </div>
+        {brands.length > 0 && (
+          <div class="home-ribbon" aria-hidden="true">
+            <div class="home-ribbon-band">
+              <div class="home-ribbon-track">
+                {[0, 1].map(() =>
+                  brands.map((brand) => (
+                    <>
+                      <span>{brand}</span>
+                      <i />
+                    </>
+                  )),
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+      </section>
+    ) : (
+      <div class="wrap home-empty">
+        <h2>{t("homeWelcome")}</h2>
+        <p>{t("heroDescription")}</p>
+      </div>
+    )}
+    <section class="home-shortcuts wrap" aria-labelledby="home-shortcuts-title">
+      <h2 id="home-shortcuts-title">{t("homeExplore")}</h2>
+      <div class="home-shortcut-grid">
+        {shortcuts.map((item) => (
+          <a
+            class="home-shortcut"
+            href={internal(item.path)}
+            data-category={item.category}
+          >
+            <h3>{item.title}</h3>
+            <p>{item.detail}</p>
+            <span class="home-enter">
+              {t("homeEnter")} <Icon name="next" />
+            </span>
+          </a>
+        ))}
+      </div>
+    </section>
+  </main>
+</Layout>
+<script>
+  import "./home";
+</script>

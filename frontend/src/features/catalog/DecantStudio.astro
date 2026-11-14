@@ -1,0 +1,292 @@
+---
+import Layout from "../../shared/layouts/SiteLayout.astro";
+import StudioFilters from "./StudioFilters.astro";
+import CartSummary from "./CartSummary.astro";
+import Notice from "../../shared/components/Notice.astro";
+import Pagination from "../../shared/components/Pagination.astro";
+import ProductImage from "../../shared/components/ProductImage.astro";
+import { perfumePayload } from "./perfume";
+import { cartEnabled } from "./storefront";
+import { translate, money, number, type Locale } from "../../shared/i18n";
+import { serverGet } from "../../shared/http/server";
+import { errorMessage } from "../../shared/http/errors";
+import type { Product, Facets, Envelope } from "../../shared/http/contracts";
+interface Props {
+  locale: Locale;
+}
+const { locale } = Astro.props;
+const t = translate(locale);
+const query = new URLSearchParams(Astro.url.search);
+const selectedSlug = query.get("selected") ?? "";
+query.delete("selected");
+query.set("kind", "decant");
+query.set("locale", locale);
+let result: Envelope<Product[]> = {
+  data: [],
+  meta: { page: 1, page_size: 24, total: 0 },
+};
+let facets: Facets = {
+  brands: [],
+  volumes_ml: [],
+  classifications: [],
+  audiences: [],
+  accords: [],
+  usages: [],
+  profiles: [],
+  kinds: [],
+  definitions: {
+    categories: [],
+    audiences: [],
+    presentations: [],
+    accords: [],
+    usages: [],
+    profiles: [],
+  },
+};
+let error = "";
+try {
+  [result, { data: facets }] = await Promise.all([
+    serverGet<Product[]>("/api/v1/catalog/products?" + query),
+    serverGet<Facets>("/api/v1/catalog/facets?locale=" + locale),
+  ]);
+} catch (err) {
+  error = errorMessage(err, locale);
+  Astro.response.status =
+    err && typeof err === "object" && "status" in err
+      ? Number(err.status)
+      : 503;
+}
+const decantVariants = (product: Product) =>
+  product.variants
+    .filter((variant) => variant.kind === "decant")
+    .sort((a, b) => Number(a.volume_ml) - Number(b.volume_ml));
+const initial = result.data.find((product) => product.slug === selectedSlug);
+const hasFilters = [...query].some(
+  ([key, value]) =>
+    !["page", "page_size", "sort", "locale", "kind"].includes(key) && value,
+);
+---
+
+<Layout title={t("decants")} locale={locale} kind="decant" cart>
+  <main
+    id="main"
+    class="studio"
+    data-studio
+    data-has-selection={initial ? "true" : undefined}
+  >
+    <div class="wrap studio-inner">
+      <header class="studio-head">
+        <p class="studio-eyebrow">{t("decants")}</p>
+        <h1>
+          {t("studioTitle")} <em>{t("studioTitleEmphasis")}</em>
+        </h1>
+      </header>
+      <div class="studio-app">
+        <section
+          class="studio-scene"
+          aria-labelledby="studio-name"
+          hidden={!initial}
+        >
+          <div class="scene-body">
+            <div class="studio-visuals">
+              <div class="vial-stage">
+                <div class="vial" data-vial aria-hidden="true">
+                  <svg viewBox="0 0 200 420" focusable="false">
+                    <defs>
+                      <linearGradient id="vial-cap" x1="0" x2="1">
+                        <stop offset="0" stop-color="#8d7a5c"></stop>
+                        <stop offset=".5" stop-color="#d9c8a9"></stop>
+                        <stop offset="1" stop-color="#8d7a5c"></stop>
+                      </linearGradient>
+                      <clipPath id="vial-body">
+                        <rect
+                          x="30"
+                          y="90"
+                          width="140"
+                          height="320"
+                          rx="38"
+                        ></rect>
+                      </clipPath>
+                    </defs>
+                    <g clip-path="url(#vial-body)">
+                      <g data-liquid class="vial-liquid">
+                        <g class="vial-wave wave-back">
+                          <path d="M0 14 Q 25 0 50 14 T 100 14 T 150 14 T 200 14 T 250 14 T 300 14 T 350 14 T 400 14 T 450 14 T 500 14 V 420 H 0 Z"></path>
+                        </g>
+                        <g class="vial-wave wave-front">
+                          <path d="M0 14 Q 25 0 50 14 T 100 14 T 150 14 T 200 14 T 250 14 T 300 14 T 350 14 T 400 14 T 450 14 T 500 14 V 420 H 0 Z"></path>
+                        </g>
+                        <circle class="bubble" cx="60" cy="330" r="4"></circle>
+                        <circle class="bubble" cx="90" cy="360" r="3"></circle>
+                        <circle class="bubble" cx="120" cy="340" r="5"></circle>
+                        <circle class="bubble" cx="145" cy="370" r="3"></circle>
+                      </g>
+                    </g>
+                    <rect
+                      class="vial-glass"
+                      x="30"
+                      y="90"
+                      width="140"
+                      height="320"
+                      rx="38"
+                    ></rect>
+                    <rect
+                      class="vial-glass"
+                      x="72"
+                      y="56"
+                      width="56"
+                      height="36"
+                      rx="6"
+                    ></rect>
+                    <rect
+                      fill="url(#vial-cap)"
+                      x="62"
+                      y="4"
+                      width="76"
+                      height="56"
+                      rx="10"
+                    ></rect>
+                    <rect
+                      class="vial-shine"
+                      x="48"
+                      y="118"
+                      width="12"
+                      height="250"
+                      rx="6"
+                    ></rect>
+                  </svg>
+                  <div class="vial-ticks" data-ticks></div>
+                </div>
+              </div>
+              <div class="studio-photo">
+                <img data-scene-photo alt="" width="500" height="600" hidden />
+              </div>
+            </div>
+            <div class="studio-info">
+              <p class="studio-meta" data-scene-meta></p>
+              <h2 id="studio-name" data-scene-name>
+                {t("studioNothing")}
+              </h2>
+              <p class="studio-kind" data-scene-kind></p>
+              <fieldset class="studio-sizes">
+                <legend id="studio-sizes-label">{t("studioChooseSize")}</legend>
+                <div class="size-buttons" data-sizes></div>
+              </fieldset>
+              <div class="studio-buy">
+                <p class="studio-price" data-scene-price>
+                  —
+                </p>
+                {cartEnabled && (
+                  <button
+                    type="button"
+                    class="button champagne studio-add"
+                    data-add
+                    disabled
+                  >
+                    <span data-add-label>{t("quickAdd")}</span>
+                  </button>
+                )}
+              </div>
+              <p class="hint studio-hint">{t("studioHint")}</p>
+              <a
+                class="text-button studio-detail"
+                data-scene-link
+                href="#"
+                hidden
+              >
+                {t("viewProduct")}
+              </a>
+              <p class="sr-only" role="status" data-announce></p>
+            </div>
+          </div>
+          <CartSummary locale={locale} />
+        </section>
+        <section class="studio-list" aria-labelledby="studio-list-title">
+          <h2 id="studio-list-title" class="sr-only">
+            {t("studioList")}
+          </h2>
+          <StudioFilters
+            locale={locale}
+            query={query}
+            facets={facets}
+            pathname={Astro.url.pathname}
+          />
+          <div id="studio-results" data-results>
+            {error ? (
+              <Notice locale={locale} message={error} retry />
+            ) : result.data.length ? (
+              <>
+                <p class="studio-count" aria-live="polite">
+                  {result.meta?.total ?? 0} {t("perfumes")}
+                </p>
+                <ul class="studio-cards">
+                  {result.data.map((product) => {
+                    const variants = decantVariants(product);
+                    return (
+                      <li>
+                        <button
+                          type="button"
+                          class="studio-card"
+                          data-product={perfumePayload(
+                            product,
+                            "decant",
+                            facets.definitions,
+                            locale,
+                          )}
+                          aria-pressed={
+                            product.slug === initial?.slug ? "true" : "false"
+                          }
+                        >
+                          <span class="studio-thumb">
+                            <ProductImage
+                              image={product.images[0]}
+                              locale={locale}
+                              name={product.brand.name + " " + product.name}
+                            />
+                          </span>
+                          <span class="studio-card-text">
+                            <small>{product.brand.name}</small>
+                            <strong>{product.name}</strong>
+                            <span class="studio-card-price">
+                              {variants[0]
+                                ? t("from") + " " + money(variants[0].price)
+                                : "—"}
+                              {variants.length > 0 &&
+                                " · " +
+                                  variants
+                                    .map((variant) => number(variant.volume_ml))
+                                    .join(" · ") +
+                                  " ml"}
+                            </span>
+                          </span>
+                          {!product.available && (
+                            <span class="stock-badge">{t("soldOut")}</span>
+                          )}
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </>
+            ) : (
+              <div class="empty-state">
+                <p>{t(hasFilters ? "noResultsHelp" : "emptyCatalogHelp")}</p>
+              </div>
+            )}
+            {result.meta && (
+              <Pagination
+                locale={locale}
+                page={result.meta.page}
+                pageSize={result.meta.page_size}
+                total={result.meta.total}
+              />
+            )}
+          </div>
+        </section>
+      </div>
+    </div>
+  </main>
+</Layout>
+<script>
+  import "./studio";
+</script>

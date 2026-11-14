@@ -3,25 +3,38 @@ import Layout from "../../../shared/layouts/SiteLayout.astro";
 import Icon from "../../../shared/components/Icon.astro";
 import ProductImage from "../../../shared/components/ProductImage.astro";
 import Notice from "../../../shared/components/Notice.astro";
-import { isLocale, translate, money, number } from "../../../shared/i18n";
+import {
+  isLocale,
+  translate,
+  money,
+  number,
+  definitionLabel,
+} from "../../../shared/i18n";
 import { serverGet } from "../../../shared/http/server";
 import { safeJson } from "../../../shared/http/serialization";
 import { ApiError, errorMessage } from "../../../shared/http/errors";
-import type { Product } from "../../../shared/http/contracts";
+import type { Facets, Product } from "../../../shared/http/contracts";
+import { catalogOnly, cartEnabled } from "../../../features/catalog/storefront";
 const locale = Astro.params.locale;
 if (!isLocale(locale)) return new Response(null, { status: 404 });
 const t = translate(locale);
 let product: Product | null = null;
+let definitions: Facets["definitions"] | undefined;
 let error = "";
 try {
-  product = (
-    await serverGet<Product>(
+  const [detail, facets] = await Promise.all([
+    serverGet<Product>(
       "/api/v1/catalog/products/" +
         encodeURIComponent(Astro.params.slug ?? "") +
         "?locale=" +
         locale,
-    )
-  ).data;
+    ),
+    serverGet<Facets>("/api/v1/catalog/facets?locale=" + locale).catch(
+      () => undefined,
+    ),
+  ]);
+  product = detail.data;
+  definitions = facets?.data.definitions;
 } catch (err) {
   Astro.response.status = err instanceof ApiError ? err.status : 503;
   error =
@@ -35,11 +48,27 @@ const kind =
     : product?.variants.some((v) => v.kind === "decant")
       ? "decant"
       : "full_bottle";
-const variants = product?.variants.filter((v) => v.kind === kind) ?? [];
-const selected =
-  variants.find((v) => v.available && v.volume_ml === "5.00") ??
-  variants.find((v) => v.available) ??
-  variants[0];
+const variants = (product?.variants.filter((v) => v.kind === kind) ?? []).sort(
+  (a, b) => Number(a.volume_ml) - Number(b.volume_ml),
+);
+const selected = variants.find((v) => v.available) ?? variants[0];
+const attributes = product
+  ? [
+      ...product.classifications.map((slug) =>
+        definitionLabel(definitions?.categories, slug, locale),
+      ),
+      definitionLabel(definitions?.audiences, product.audience, locale),
+      ...product.accords.map((slug) =>
+        definitionLabel(definitions?.accords, slug, locale),
+      ),
+      ...product.usages.map((slug) =>
+        definitionLabel(definitions?.usages, slug, locale),
+      ),
+      ...product.profiles.map((slug) =>
+        definitionLabel(definitions?.profiles, slug, locale),
+      ),
+    ]
+  : [];
 ---
 
 <Layout
@@ -108,14 +137,9 @@ const selected =
               <p class="house">{product.brand.name}</p>
               <h1>{product.name}</h1>
               <div class="attributes">
-                {product.classifications.map((value) => (
-                  <span class="attribute">{t(value)}</span>
+                {attributes.map((label) => (
+                  <span class="attribute">{label}</span>
                 ))}
-                <span class="attribute">
-                  {product.audience === "unisex"
-                    ? "Unisex"
-                    : t(product.audience)}
-                </span>
               </div>
             </>
             <p class="description" lang={product.description_locale}>
@@ -162,47 +186,52 @@ const selected =
                 {selected?.available ? t("available") : t("soldOut")}
               </p>
             </>
-            <div class="purchase-row">
-              <>
-                <div class="quantity-control">
-                  <>
-                    <button data-product-quantity="-1" aria-label={t("reduce")}>
-                      <Icon name="minus" />
-                    </button>
-                    <label class="sr-only" for="product-quantity">
-                      {t("quantity")}
-                    </label>
-                    <input
-                      id="product-quantity"
-                      type="number"
-                      min="1"
-                      max="20"
-                      value="1"
-                    />
-                    <button
-                      data-product-quantity="1"
-                      aria-label={t("increase")}
-                    >
-                      <Icon name="plus" />
-                    </button>
-                  </>
-                </div>
-                <button
-                  id="add-to-cart"
-                  class="button champagne"
-                  disabled={!selected?.available}
-                >
-                  <>
-                    <Icon name="bag" />
-                    <span>
-                      {selected?.available ? t("addCart") : t("soldOut")}
-                    </span>
-                  </>
-                </button>
-              </>
-            </div>
+            {cartEnabled && (
+              <div class="purchase-row">
+                <>
+                  <div class="quantity-control">
+                    <>
+                      <button
+                        data-product-quantity="-1"
+                        aria-label={t("reduce")}
+                      >
+                        <Icon name="minus" />
+                      </button>
+                      <label class="sr-only" for="product-quantity">
+                        {t("quantity")}
+                      </label>
+                      <input
+                        id="product-quantity"
+                        type="number"
+                        min="1"
+                        max="20"
+                        value="1"
+                      />
+                      <button
+                        data-product-quantity="1"
+                        aria-label={t("increase")}
+                      >
+                        <Icon name="plus" />
+                      </button>
+                    </>
+                  </div>
+                  <button
+                    id="add-to-cart"
+                    class="button champagne"
+                    disabled={!selected?.available}
+                  >
+                    <>
+                      <Icon name="bag" />
+                      <span>
+                        {selected?.available ? t("addCart") : t("soldOut")}
+                      </span>
+                    </>
+                  </button>
+                </>
+              </div>
+            )}
             <>
-              <p class="service-note">{t("purchaseNote")}</p>
+              {!catalogOnly && <p class="service-note">{t("purchaseNote")}</p>}
               <p id="storage-notice" class="notice" hidden />
               <div id="product-error" class="notice" tabindex="-1" hidden />
             </>

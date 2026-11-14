@@ -20,6 +20,7 @@ from werkzeug.serving import make_server
 
 from beront.app import create_app
 from beront.config import Settings
+from beront.modules.commerce.application.seed_home import SeedHomeMessages
 
 PROJECT = Path(__file__).resolve().parents[3]
 FRONTEND = PROJECT / "frontend"
@@ -157,6 +158,7 @@ def seed_commerce(container, admin):
 
 
 def main():
+    whatsapp_only = os.getenv("BERONT_E2E_WHATSAPP_ONLY") == "true"
     helpers = runpy.run_path(str(PROJECT / "backend" / "tests" / "conftest.py"))
     with tempfile.TemporaryDirectory(prefix="beront-browser-") as directory:
         temporary = Path(directory)
@@ -174,32 +176,73 @@ def main():
                     storage_root=temporary / "storage",
                     testing=True,
                     rate_limits=False,
+                    cart_requires_stock=not whatsapp_only,
                 ),
                 DiscardingMailer(),
             )
             username, password = "browser-test", secrets.token_urlsafe(24)
             admin = app.extensions["beront"].identity.create_admin(username, password)
             seed_commerce(app.extensions["beront"], admin)
+            if whatsapp_only:
+                services = app.extensions["beront"]
+                product = services.queries.detail("perfume-e2e").product
+                services.inventory.adjust(
+                    actor_id=admin.id,
+                    kind="decant",
+                    target_id=product.id,
+                    delta=Decimal("-50"),
+                    version=2,
+                    reason="Prueba de solicitud sin existencias",
+                    operation_id=uuid4(),
+                )
+                services.catalog.create_variant(
+                    product.id,
+                    {"kind": "full_bottle", "volume_ml": Decimal("100"), "price": Decimal("120")},
+                    admin.id,
+                )
+                services.catalog.create_variant(
+                    product.id,
+                    {"kind": "decant", "volume_ml": Decimal("7.5"), "price": Decimal("18.75")},
+                    admin.id,
+                )
+                services.commerce.save_settings(
+                    {**services.commerce.settings(), "whatsapp_number": "593939237376"}, admin.id
+                )
+            SeedHomeMessages(app.extensions["beront"].uow_factory).execute()
             logging.getLogger("werkzeug").setLevel(logging.WARNING)
             image = temporary / "image.png"
-            Image.new("RGB", (30, 40), "#B8A58A").save(image)
+            photograph = Image.new("RGBA", (30, 40), "#B8A58A")
+            photograph.putpixel((0, 0), (31, 85, 162, 0))
+            photograph.putpixel((1, 1), (192, 163, 98, 127))
+            photograph.save(image)
+            if whatsapp_only:
+                with image.open("rb") as stream:
+                    services.catalog.add_image(
+                        product.id,
+                        stream,
+                        {"alt_es": "Foto de prueba del perfume", "alt_en": "Test perfume photo"},
+                        admin.id,
+                    )
             http = make_server("127.0.0.1", api_port, app, threaded=True)
             thread = threading.Thread(target=http.serve_forever, daemon=True)
             thread.start()
             environment = {
                 **os.environ,
                 "BACKEND_URL": f"http://127.0.0.1:{api_port}",
+                "PUBLIC_CATALOG_ONLY": "true" if whatsapp_only else "false",
+                "PUBLIC_CART_ENABLED": "true",
                 "BERONT_E2E_BASE_URL": base_url,
                 "BERONT_E2E_USERNAME": username,
                 "BERONT_E2E_PASSWORD": password,
                 "BERONT_E2E_IMAGE": str(image),
+                "BERONT_E2E_OUTPUT_DIR": str(temporary / "browser-results"),
                 "ASTRO_TELEMETRY_DISABLED": "1",
             }
             process = None
             try:
                 with (temporary / "frontend.log").open("wb") as log:
                     process = subprocess.Popen(
-                        [bun_binary(), "run", "dev", "--port", str(frontend_port)],
+                        [bun_binary(), "run", "dev", "--port", str(frontend_port), "--ignore-lock"],
                         cwd=FRONTEND,
                         env=environment,
                         stdin=subprocess.DEVNULL,
@@ -221,13 +264,14 @@ def main():
                     if not ready:
                         raise RuntimeError("No se pudo iniciar el frontend de pruebas.")
                     result = subprocess.run(
-                        [bun_binary(), "x", "--bun", "playwright", "test"],
+                        [bun_binary(), "x", "--bun", "playwright", "test"]
+                        + (["application-whatsapp.spec.ts"] if whatsapp_only else []),
                         cwd=FRONTEND,
                         env=environment,
                         creationflags=subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0,
                         check=False,
                     )
-                    report = FRONTEND / "test-results" / "application-report.json"
+                    report = temporary / "browser-results" / "application-report.json"
                     if report.is_file():
                         stats = json.loads(report.read_text(encoding="utf-8"))["stats"]
                         print(

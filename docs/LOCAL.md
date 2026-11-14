@@ -1,5 +1,41 @@
 # Ejecución y verificación local
 
+## Auditoría y benchmark, 13 de noviembre de 2026
+
+Resultados, correcciones y límites: [AUDITORIA.md](AUDITORIA.md).
+Desde `backend/`, el benchmark carga la semilla en PostgreSQL y almacenamiento temporales:
+
+```sh
+POSTGRES_BIN=/Applications/Postgres.app/Contents/Versions/latest/bin .venv/bin/python tests/integration/benchmark_catalog.py --output /tmp/beront-benchmark.json
+```
+
+Acepta `--iterations` entre 5 y 100; el valor predeterminado es 20. La ruta de PostgreSQL se
+ajusta al equipo. No mide tráfico externo ni representa capacidad de producción.
+El harness `tests/integration/frontend_browser.py` aísla también las trazas y el informe de
+Playwright en su directorio temporal y los elimina al terminar. Para Playwright directo,
+`BERONT_E2E_OUTPUT_DIR` permite elegir la salida; por defecto conserva `frontend/test-results`.
+
+`frontend/package.json` fija `minimatch` 11.0.1 mediante override para corregir el aviso
+GHSA-g3hv-75wg-m249 de las herramientas de desarrollo. `bun.lock` conserva la resolución
+verificada por lint, tipos y build. No se añade una dependencia directa de la aplicación.
+
+## Carrito por WhatsApp con disponibilidad abierta, 13 de noviembre de 2026
+
+El WhatsApp comercial configurado por el propietario es `593939237376` (0939237376).
+`backend/.env` usa `CART_REQUIRES_STOCK=false`; no se asignaron existencias ficticias. Para
+restablecer la validación de saldo del catálogo y carrito, usar `true` y cargar nuevamente el
+backend conforme a la regla 17 de AGENTS.md. Las marcas manuales de agotado siguen vigentes.
+`frontend/.env.example` documenta `PUBLIC_CART_ENABLED=true`, independiente del menú limitado.
+El diálogo permite cantidades, eliminación y resumen; WhatsApp requiere envío manual del cliente.
+El checkout y los pedidos continúan validando inventario y permanecen fuera del menú público.
+Activado tras autorización de reinicio del backend; `FRONTEND_ORIGIN=http://localhost:4322`
+coincide con la URL habitual de Chrome. La cabecera del carrito permite abrirlo desde el Home.
+
+Prueba integrada del perfil (base y servidores temporales; WhatsApp interceptado):
+`BERONT_E2E_WHATSAPP_ONLY=true POSTGRES_BIN=/ruta/postgresql/bin .venv/bin/python tests/integration/frontend_browser.py`
+desde `backend/`. El perfil habitual del mismo script mantiene la tienda completa.
+
+
 ## Requisitos
 
 - Python 3.14, fijado en backend/.python-version.
@@ -29,11 +65,15 @@ la vulnerabilidad de lectura local detectada en versiones anteriores de su servi
 
 ## Base de datos local
 
-Estado del equipo, 27 de octubre de 2026: `beront-bd` ya está migrada hasta
-`c449e445ed3d` y `alembic check` no detecta diferencias con los modelos.
-`DATABASE_URL` usa el rol restringido `beront_app_2ec87f29`; `MIGRATION_DATABASE_URL`
-conserva `postgres`. No repetir la preparación manual siguiente en esta base existente.
-El siguiente paso del propietario es crear el administrador y ejecutar la semilla.
+Estado del equipo, 1 de noviembre de 2026: `beront-bd` está en PostgreSQL local (127.0.0.1:5432),
+migrada a la revisión única `0e7393567f81`, y `alembic check` no detecta diferencias con los
+modelos. `DATABASE_URL` y `MIGRATION_DATABASE_URL` usan el rol `juanra` (superusuario local),
+definido solo en `backend/.env`. Mientras se use ese rol, el aislamiento del rol de ejecución
+(sin DDL ni acceso directo a tablas) descrito más abajo no se aplica. No repetir la preparación
+manual siguiente en esta base existente. El siguiente paso es crear el administrador y ejecutar
+la semilla.
+
+Las funciones SQL están en `backend/bd/` (ver [backend/bd/README.md](../backend/bd/README.md)).
 
 ### Preparación manual para una instalación nueva
 
@@ -79,10 +119,10 @@ Copiar backend/.env.example a backend/.env y completar los valores localmente:
 migraciones. No representan dos bases: ambas deben apuntar a la misma base y pueden
 usar usuarios diferentes para separar permisos de ejecución y migración.
 
-El 26 de octubre se configuraron ambas conexiones con `postgres`, por indicación del propietario.
-El 27 de octubre se separaron los roles: Flask ejecuta funciones con `beront_app_2ec87f29`,
-sin superusuario, DDL ni acceso directo a tablas. La credencial aleatoria de ese rol se guardó
-solo en `backend/.env`. El secreto de Flask y las credenciales de migración no se modificaron.
+El 1 de noviembre de 2026 ambas conexiones se configuraron con el rol `juanra`, por indicación del
+propietario. Para restablecer la separación de permisos, crear un rol de ejecución sin superusuario,
+conceder las funciones como se indica más abajo y asignarlo a `DATABASE_URL`. Las credenciales se
+guardan solo en `backend/.env`.
 
 WhatsApp se omite del `.env` y de su plantilla por solicitud del propietario.
 El código ya no lee `WHATSAPP_NUMBER`, aunque exista en el entorno del proceso.
@@ -96,35 +136,39 @@ El secreto no tiene un valor predeterminado.
 
 ## Migraciones y administrador
 
+Todos los comandos de administración usan `uv run beront <comando>` desde `backend/`;
+`uv run beront --help` los lista (`migrate`, `createsuperuser`, `reset-password`,
+`importar-catalogo`, `importar-recortes`, `inicializar-home`, `run`, `routes`, `shell`). Leen `backend/.env` automáticamente.
+
 Desde backend/:
 
 ```powershell
-uv run alembic upgrade head
+uv run beront migrate
 uv run alembic check
-uv run flask --app beront.app:create_app createsuperuser
+uv run beront createsuperuser
 ```
 
 El comando solicita usuario y contraseña oculta de 14..128 caracteres.
 Un segundo administrador se rechaza también por restricción de PostgreSQL.
 `create-admin NOMBRE_DE_USUARIO` se conserva como alias con el mismo límite.
 
-Después de migrar, conceder ejecución de funciones al usuario de la aplicación,
-con psql y el rol propietario. Repetir el GRANT de funciones después de nuevas migraciones:
+Con un rol de ejecución restringido, después de migrar conceder ejecución de funciones
+al usuario de la aplicación, con psql y el rol propietario. Repetir el GRANT de funciones
+después de nuevas migraciones. Con `juanra` en `DATABASE_URL` no es necesario.
 
-El ejemplo siguiente usa el nombre de la instalación actual. En una instalación nueva,
-sustituirlo por el rol elegido para `DATABASE_URL`.
+El ejemplo siguiente usa un rol de ejemplo; sustituirlo por el rol elegido para `DATABASE_URL`.
 
 ```sql
-REVOKE ALL ON TABLE alembic_version FROM beront_app_2ec87f29;
-REVOKE ALL ON ALL TABLES IN SCHEMA public FROM beront_app_2ec87f29;
-GRANT USAGE ON SCHEMA beront_api TO beront_app_2ec87f29;
-GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA beront_api TO beront_app_2ec87f29;
+REVOKE ALL ON TABLE alembic_version FROM beront_app;
+REVOKE ALL ON ALL TABLES IN SCHEMA public FROM beront_app;
+GRANT USAGE ON SCHEMA beront_api TO beront_app;
+GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA beront_api TO beront_app;
 ```
 
 Para recuperar acceso localmente:
 
 ```powershell
-uv run flask --app beront.app:create_app reset-password NOMBRE_DE_USUARIO
+uv run beront reset-password NOMBRE_DE_USUARIO
 ```
 
 Esto solicita una contraseña nueva y revoca todas las sesiones del administrador.
@@ -135,13 +179,13 @@ No existe registro público ni recuperación por correo.
 Desde `backend/`, verificar sin acceder a la base:
 
 ```powershell
-uv run python semillas/importar_catalogo.py
+uv run beront importar-catalogo --solo-validar
 ```
 
 Después de migrar y crear el administrador, importar:
 
 ```powershell
-uv run python semillas/importar_catalogo.py --apply
+uv run beront importar-catalogo
 ```
 
 La fuente está en `backend/semillas/catalogo/`: 130 perfumes, 400 presentaciones,
@@ -165,14 +209,75 @@ se registran manualmente y las recuperaciones se atienden por los contactos del 
 
 Las fotografías de origen se conservan como entrada de semilla. Las copias servidas
 se validan y normalizan en `backend/var/uploads/`. La versión temporal del frontend
-se retirará después de verificar esta integración en la base comercial local.
+se retiró el 1 de noviembre de 2026.
+
+## Aplicar los recortes aprobados Inkscape R02
+
+Desde `backend/`, después de importar el catálogo original y con el administrador activo:
+
+```sh
+uv run beront importar-recortes --manifiesto ../design/assets/inkscape-catalog-r02-manifest.json --solo-validar
+uv run beront importar-recortes --manifiesto ../design/assets/inkscape-catalog-r02-manifest.json
+```
+
+La validación comprueba archivos, huellas y vínculos sin escribir. La importación es atómica e
+idempotente: conserva los originales en biblioteca, posiciones y textos alternativos; no modifica
+precios ni existencias. Un vínculo original editado requiere revisión, no se sobrescribe.
+Los PNG se mantienen como maestros en diseño y se sirven como WebP RGBA sin pérdida mediante
+el contrato de medios existente. No hay migraciones ni dependencias nuevas.
+
+Aplicado el 8 de noviembre: 132 recortes, 129 perfumes y 135 vínculos. Una validación posterior
+devuelve 135 ya aplicados. Delina carece de original. Aplicación disponible en
+`http://localhost:4322/es/catalog/full-bottles` y `/es/catalog/decants`; API en `127.0.0.1:5000`.
+Las fotografías importadas se sirven correctamente. El 9 de noviembre el propietario autorizó
+reiniciar solo el backend para activar el Home; la preservación de alfa para futuras subidas
+también está cargada. El frontend 4322 conserva su proceso.
+
+## Home y mensajes destacados
+
+La navegación pública está temporalmente en modo catálogo: Inicio, Decants y Perfumes
+completos. `PUBLIC_CATALOG_ONLY` es `true` por defecto; se documenta en `frontend/.env.example`
+y se resuelve en `features/catalog/storefront.ts`. Para recuperar posteriormente la interfaz
+completa se configura `PUBLIC_CATALOG_ONLY=false` al iniciar o compilar el frontend.
+No se borran datos ni funciones. El panel sigue accesible por `/es/admin/login`, con los
+permisos habituales; no se anuncia en los menús públicos. Idioma y accesibilidad siguen
+en la cabecera. Las rutas directas existentes se conservan: este modo oculta accesos y
+acciones de compra, no sustituye la autorización del backend.
+
+Después de migrar, importar el catálogo y aplicar los recortes R02:
+
+```sh
+uv run beront inicializar-home
+```
+
+Instala seis mensajes aprobados y sus fotografías actuales del catálogo; cinco están activos y
+la promoción de ejemplo está desactivada. No reemplaza mensajes existentes ni modifica precios
+o existencias. Puede repetirse. La portada real está en `http://localhost:4322/es/` y `/en/`.
+
+Editar desde Administración → Configuración → Inicio y mensajes. Permite textos ES/EN, hasta tres
+imágenes de biblioteca, enlaces internos, orden, estado y fechas. Las fechas se introducen en la
+hora del dispositivo, se guardan en UTC y se aplican desde el backend. Desactivar conserva el
+registro. La biblioteca impide eliminar imágenes vinculadas al Home, incluso en un borrador.
+
+En los mensajes iniciales `welcome`, `decants` y `full-bottles`, la portada calcula las fotos
+automáticamente: un árabe, un diseñador y un nicho del catálogo público, con su foto principal
+vigente. La selección permanece durante el día y se renueva al abrir o recargar después de
+medianoche de Ecuador (`America/Guayaquil`), sin tarea programada. Las imágenes guardadas en
+estos tres mensajes se conservan en administración; la portada muestra la selección diaria.
+Los mensajes personalizados siguen usando sus imágenes configuradas. Si falta una categoría
+con foto, se muestra el símbolo alternativo existente.
+
+API pública: `GET /api/v1/home/messages`, solo activos y vigentes. Administración protegida:
+`GET/POST /api/v1/admin/home/messages` y `PUT /api/v1/admin/home/messages/{id}`. Exige sesión,
+permiso `commerce:write`, CSRF en cambios y versión al editar. Solo admite fotos de producto;
+los comprobantes permanecen privados. Las cifras de la portada proceden del catálogo público.
 
 ## Arrancar la API
 
 Desde backend/:
 
 ```powershell
-uv run flask --app beront.app:create_app run --host 127.0.0.1 --port 5000
+uv run beront run
 ```
 
 Mantener FLASK_DEBUG desactivado.
@@ -271,18 +376,6 @@ Para probar localmente se puede usar un servidor SMTP de captura en 127.0.0.1.
 La cancelación de pedidos sin venta confirmada no modifica saldos. Las devoluciones
 y reembolsos de ventas confirmadas no se implementaron en esta etapa.
 
-## Revisar los prototipos
-
-Desde la raíz:
-
-```powershell
-backend\.venv\Scripts\python.exe -m http.server 4322 --bind 127.0.0.1 --directory design
-```
-
-Abrir http://127.0.0.1:4322/prototypes/catalog.html .
-Consultar design/README.md y las capturas de design/reviews/.
-Detener el servidor con Ctrl+C al terminar.
-
 ## Arrancar el frontend
 
 Desde frontend/:
@@ -334,16 +427,10 @@ No modificar revisiones que ya se hayan aplicado.
 
 ## Pruebas visuales y herramientas frontend
 
-La demostración adicional con el HTML del propietario se abre en
-http://localhost:4321/temporal/ con el frontend levantado. No requiere Flask.
-Su API simulada, fotografías locales y sustitución por el catálogo comercial
-se documentan en [TEMPORARY_CATALOG.md](TEMPORARY_CATALOG.md).
-
 Desde frontend/:
 
 ```powershell
 bun.cmd x --bun playwright install chromium firefox webkit
-bun.cmd x --bun playwright test
 bun.cmd run check
 bun.cmd run lint
 bun.cmd run format
@@ -351,9 +438,6 @@ bun.cmd run build
 bun.cmd run test
 bun.cmd run test:app
 ```
-
-playwright test mantiene las pruebas de los prototipos aprobados. Cubren 320, 360,
-390, 768, 1024 y 1440 px, filtros, diálogos, idioma y teclado, y administran su propio servidor.
 
 bun run test verifica el carrito persistente, la vista previa decimal exacta de inventario,
 el JSON incrustado y los límites, rutas y cookies del proxy.
@@ -366,6 +450,8 @@ carrito sin reservas, idiomas, agotados, cierre de sesión, CSRF, límites y res
 El informe se guarda en frontend/test-results/application-report.json.
 Los procesos y datos temporales se eliminan al finalizar. El servidor normal del frontend
 y la base comercial permanecen separados de estas pruebas.
+Los navegadores se ejecutan de uno en uno (comparten la base temporal) y el servidor de Astro de
+las pruebas se inicia con `--ignore-lock`, por lo que no interfiere con un `bun run dev` abierto.
 
 BUN_BIN permite indicar el ejecutable de Bun si no está disponible en PATH.
 Los plugins Astro de ESLint y Prettier están fijados a versiones compatibles con Astro 7.

@@ -152,6 +152,38 @@ def test_whatsapp_encoding_and_missing_configuration(locale):
     assert CartQuote(lines, link).total == Decimal("0.20")
 
 
+@pytest.mark.parametrize("locale", ["es", "en"])
+def test_whatsapp_separates_products_and_preserves_precise_amounts(locale):
+    lines = [
+        QuoteLine(
+            uuid4(),
+            " Casa & prueba ",
+            "Ámbar / claro",
+            "decant",
+            Decimal("7.50"),
+            2,
+            Decimal("12.35"),
+        ),
+        QuoteLine(
+            uuid4(),
+            "Otra casa",
+            "Otro perfume",
+            "full_bottle",
+            Decimal("100.00"),
+            1,
+            Decimal("120.10"),
+        ),
+    ]
+    link = WhatsAppLinkBuilder("593939237376").build(lines, locale)
+    text = parse_qs(urlparse(link).query)["text"][0]
+    assert "%0A%0A" in link
+    assert "*1. Casa & prueba — Ámbar / claro*\n" in text
+    assert "· 7.5 ml\n" in text and "· 100 ml\n" in text
+    assert "Subtotal: USD 24.70\n\n*2. Otra casa — Otro perfume*\n" in text
+    assert "Subtotal: USD 120.10\n\n*Total: USD 144.80*\n" in text
+    assert ("Unit price: USD 12.35" if locale == "en" else "Precio unitario: USD 12.35") in text
+
+
 def test_image_normalization(tmp_path):
     store = LocalImageStorage(tmp_path)
     source = BytesIO()
@@ -175,3 +207,21 @@ def test_image_normalization(tmp_path):
     animated.seek(0)
     with pytest.raises(DomainError):
         store.save(animated)
+
+
+@pytest.mark.parametrize("palette", [False, True])
+def test_image_normalization_preserves_transparency_and_pixels(tmp_path, palette):
+    store = LocalImageStorage(tmp_path)
+    original = Image.new("RGBA", (6, 4), (31, 85, 162, 0))
+    original.putpixel((2, 1), (192, 163, 98, 127))
+    original.putpixel((3, 2), (112, 44, 7, 255))
+    source = BytesIO()
+    if palette:
+        original = original.convert("P", palette=Image.Palette.ADAPTIVE)
+    original.save(source, "PNG")
+    expected = Image.open(BytesIO(source.getvalue())).convert("RGBA").tobytes()
+    source.seek(0)
+    filename = store.save(source)
+    with Image.open(store.path(filename)) as image:
+        assert image.format == "WEBP"
+        assert image.convert("RGBA").tobytes() == expected

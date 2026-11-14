@@ -1,5 +1,272 @@
 # Ampliación de BÉRONT: implementación y cumplimiento
 
+## Carrito: fotos vigentes y decants animados, 13 de noviembre de 2026
+
+El propietario solicita mostrar la foto del perfume en los completos y la foto junto al decant
+animado en los decants, sobre el diálogo existente mostrado en su captura. Se integra ese ajuste
+puntual en `features/cart/dialog.ts`, reutilizando `image_url` ya devuelto por la cotización.
+No cambia el backend, la persistencia, los precios, las cantidades ni el resumen de WhatsApp.
+
+Cada completo muestra solo su fotografía; cada decant añade el mini frasco SVG, con color de
+la foto, llenado y ondas. El nivel responde a los ml elegidos y se respeta movimiento reducido.
+Las fotos conservan su proporción con object-fit: contain y texto alternativo. Sin foto o con
+error se indica su ausencia, sin sustituir el completo por un decant. El diálogo usa su Container
+Query existente: foto y decant al lado en escritorio, apilados en compacto para dejar espacio
+a los controles. Las acciones, precios y cantidades se conservan.
+
+Verificación del ajuste: 12 escenarios en Chromium, Firefox y WebKit aprobados, con fotos
+cargadas desde el backend temporal, ausencia de mini vial en completos, animación/nivel según ml,
+movimiento reducido y recuperación ante foto fallida. Se recorren 320/360/390/768/1024/1440/1920/2560
+px con texto normal y ampliado, sin desbordamientos ni superposición entre fotos y controles.
+Astro check, ESLint, formato, build y 27 pruebas unitarias de frontend correctos.
+Revisado también en Chrome con Dunescape y Odyssey Mandarin Sky completos, y Arabian Sky y
+Bacio Immortale en decants: cuatro fotos, dos mini frascos y total $170.24 conservado. Los
+servidores habituales no se reiniciaron; las pruebas temporales cerraron sus procesos y base.
+No se verificaron dispositivos físicos.
+
+
+## Resumen legible de WhatsApp y catálogo abierto, 13 de noviembre de 2026
+
+El propietario solicita que no aparezca ningún agotado y separar claramente los productos
+en WhatsApp. Se consulta el catálogo completo vigente: 127 decants y 17 completos, todas sus
+presentaciones disponibles para solicitar en el modo abierto. No se modifican existencias ni
+marcas manuales; una pestaña antigua mostraba datos y navegación previos. Se abre Decants
+actualizado en Chrome conservando los siete artículos del carrito del propietario.
+
+WhatsAppLinkBuilder genera bloques numerados, con líneas para marca/modelo, presentación en ml,
+cantidad, precio unitario y subtotal. Una línea en blanco separa productos; el total se destaca
+al final, seguido de envío no incluido y confirmación de disponibilidad. Se mantienen ES/EN,
+codificación del enlace, Decimal y recotización desde el backend. No se envían mensajes.
+
+Verificación de este ajuste: 49 pruebas de backend y seis escenarios de navegador aprobados
+en Chromium, Firefox y WebKit; Ruff, ESLint y formato correctos. Las siete páginas vigentes
+del catálogo no contienen etiquetas Agotado. El propietario autorizó reiniciar solo el backend
+5000 y el nuevo texto quedó activo. Se verificó mediante el proxy del frontend 4322 con dos
+productos reales, bloques separados y total $94.95. Frontend y carrito del propietario
+conservados; no se abrió WhatsApp ni se envió ningún mensaje.
+
+
+## Carrito y solicitudes por WhatsApp, 13 de noviembre de 2026
+
+Se conecta el carrito aprobado en catálogos y fichas con la cotización existente del backend.
+El propietario autoriza temporalmente solicitudes sin cantidades de inventario: configuración
+`CART_REQUIRES_STOCK=false`, con validación de publicación, actividad y agotado manual vigente.
+La validación estricta sigue siendo el valor predeterminado y se conserva para checkout y pedidos.
+El número se guarda mediante CommerceService, con auditoría, como `593939237376`; se conservan
+los términos. No hay migraciones, dependencias nuevas ni cambios de inventario.
+
+El frontend mantiene el menú de tres secciones y habilita carrito con `PUBLIC_CART_ENABLED`.
+Se reutilizan persistencia de identificadores/cantidades, resumen, controles de cantidad y
+eliminación, recotización y manejo de cambios de precio. En el perfil limitado, WhatsApp sustituye
+la continuación a checkout. El enlace incluye los importes determinados por el backend y una
+nota de disponibilidad/envío por confirmar; el mensaje se envía manualmente desde WhatsApp.
+
+
+Verificación: 80 pruebas de backend (configuración, carrito/inventario, comercio, pedidos,
+catálogo y seguridad), 27 unitarias de frontend y 15 escenarios integrados en Chromium,
+Firefox y WebKit. El perfil WhatsApp recorre 320/360/390/768/1024/1440/1920/2560 px;
+verifica cantidades, eliminación, persistencia ES/EN, total, enlace y nota de confirmación,
+con navegación a WhatsApp interceptada. Pasan Astro check, ESLint, formato, Ruff y build.
+No se verificaron dispositivos físicos. Las pruebas usaron bases y servidores temporales.
+
+Activación local autorizada: backend 5000 reiniciado; frontend 4322 conservado. Se corrigió
+FRONTEND_ORIGIN de localhost:4321 a localhost:4322 para aceptar el origen real de la tienda.
+Comprobación adicional sobre la API real: decant Afnan 9 AM Dive 3 ml ($4.95) y completo
+Amber Oud Gold Edition 120 ml ($90), total $94.95, enlace al número configurado. Chrome
+verifica agregar, incrementar ($90 a $180), eliminar y WhatsApp habilitado; se retira el
+producto de prueba del carrito. No se envían mensajes ni se modifican existencias.
+
+## Oferta de perfumes completos, 10 de noviembre de 2026
+
+Por indicación del propietario, la sección de completos pasa a tener 12 perfumes. Se aplicó
+en la base local `beront-bd` mediante `CatalogService`, con auditoría y control de versión,
+sin SQL directo ni cambios de esquema: presentación de completo de 120 ml; marcas Bharara
+(Árabe) y Billie Eilish (Diseñador); perfumes nuevos Armaf Dunescape y Odyssey Mandarin Sky
+Vintage Edition, Bharara King, Billie Eilish Eilish No. 2 y Lattafa Khamrah Qahwa, publicados
+sin descripción ni fotografía; completos añadidos a Stronger With You Intensely, Amber Oud
+Gold Edition (120 ml), Club de Nuit Intense Man (200 ml) y Yara Candy; nuevos precios de
+Mandarin Sky, Khamrah Waha y Angham Second Song. Los otros 21 completos se desactivaron (no
+se borraron); los 10 perfumes que solo existían como completo quedaron despublicados. Ninguno
+tenía pedidos ni existencias. Todas las existencias de completos son cero, por lo que la tienda
+los muestra agotados hasta registrar un ajuste de inventario. La API pública devuelve los 12.
+Fotografías pendientes de aprobación: ver `docs/DESIGN_APPROVALS.md`.
+
+## Decants nuevos, 11 de noviembre de 2026
+
+Por indicación del propietario, mediante `CatalogService` y con auditoría: Lorenzo Pazzaglia
+Speachless (unisex, solo decants) se crea y publica con los precios de Summer Hammer
+(3 ml $19.29, 5 ml $30.10, 10 ml $56.99) y fotografía recortada; Lattafa Khamrah Qahwa recibe
+los decants de Khamrah (3 ml $3.50, 5 ml $5.25, 10 ml $9.80) y Armaf Dunescape los suyos
+(3 ml $5.24, 5 ml $6.74, 10 ml $10.54). Ambos conservan su completo. Las existencias de decants
+son cero, como en el resto del catálogo. Evidencia en `design/reviews/decants-nuevos-*`.
+
+Después, Afnan 9 AM Dive (despublicado al retirar su completo) recibe decants de 3 ml $4.95,
+5 ml $6.25 y 10 ml $9.55 y vuelve a publicarse; su completo sigue desactivado. Se crea y publica
+Jo Milano Paris Game of Spades Emerald (unisex, solo decants): 3 ml $7.85, 5 ml $10.90,
+10 ml $18.65. Bharara King (3 ml $6.26, 5 ml $8.40, 10 ml $13.77) y Armaf Odyssey Mandarin
+Sky Vintage Edition (3 ml $5.45, 5 ml $7.26, 10 ml $11.56) reciben decants y conservan su completo.
+Lo mismo Lattafa Angham Second Song: 3 ml $5.78, 5 ml $7.61, 10 ml $12.24.
+
+## Selector del Home, 9 de noviembre de 2026
+
+El propietario solicita juntar los iconos de completos. El patrón pasa a cuatro columnas
+uniformes con ocho apariciones de sus cuatro motivos, conservando escala y opacidad. Se reduce
+a la mitad la distancia horizontal media. Prototipo y recurso público idénticos; pasan 72
+comprobaciones en tres motores, seis anchos y dos tamaños de texto, enlace y build. Evidencias
+`design/reviews/home-bottles-density-*`; sin cambios de código o datos comerciales.
+
+El fondo de «Perfumes completos» se sustituye posteriormente por cuatro iconos basados en las
+fotografías del propietario: tapa en punta y placa trapezoidal, torso con franjas y atomizador,
+frasco redondeado con picos y trofeo con asas. Todos son SVG de trazo champán, sin fotografías
+incrustadas. Se revisa primero el patrón del prototipo y se copia idéntico al recurso público
+existente. Pasan 240 comprobaciones de prototipo/aplicación, ES/EN, tres motores, diez anchos
+y dos tamaños de texto; enlaces y build correctos. Evidencias `design/reviews/home-four-bottles-*`.
+No cambia el código, el backend ni los datos comerciales; no se probaron dispositivos físicos.
+
+El patrón de decants se redibuja posteriormente siguiendo la fotografía aportada por el
+propietario: pulsador con orificio visible, cuello ancho, vidrio alargado, resorte y tubo curvo.
+Se conserva el SVG decorativo champán y su repetición, actualizando primero el recurso del
+prototipo y después su copia pública. Pasan 120 comprobaciones de prototipo/aplicación en tres
+motores, diez anchos y dos tamaños de texto; enlace y build correctos. Evidencias
+`design/reviews/home-decant-reference-*`. Sin cambios de código, backend o datos comerciales.
+
+Revisión posterior: texto de ambas tarjetas centrado y fotografías sustituidas por patrones SVG
+en champán. Decants usa varios atomizadores; completos usa torso, cilindro y frasco con picos,
+sin marcas. Prototipo actualizado primero; recursos idénticos en `design/assets/` y
+`frontend/public/brand/`, coloreados mediante el token existente. Los adornos no intervienen
+en el foco ni en la lectura accesible. El catálogo sigue aportando cifras y precio mínimo.
+Pasan 360 comprobaciones del selector y 12 de alto contraste en tres motores, teclado y
+navegación, además de Astro, ESLint, formato y compilación. Capturas a 390/1440 px y resultados
+en `design/reviews/home-category-patterns-*`. Se corrige la cabecera del simulador para que
+reorganice sus controles por debajo de 1200 px. La pasada final no detecta desbordamiento
+horizontal en prototipo ni aplicación. Home real actualizado abierto en Chrome. No se probaron
+dispositivos físicos; los servidores del propietario mantienen sus procesos.
+
+El bloque de acceso al catálogo pregunta «¿Qué estás buscando hoy?» y presenta dos tarjetas:
+Decants y Perfumes completos, con fotografías sin fondo y cifras del backend. Se actualizan
+prototipo y traducción EN; la cuadrícula usa dos columnas desde 600 px y una en móvil.
+Pedidos y carrito conservan sus accesos de navegación. No cambia el backend ni sus datos.
+
+Verificadas 360 combinaciones de prototipo/aplicación en tres motores, ES/EN, 15 anchos y
+texto normal/XL, más navegación a ambos catálogos. Astro, ESLint y compilación correctos.
+Evidencias `design/reviews/home-choice-*`. Se abre el bloque real en Chrome sin reiniciar servidores.
+
+## Home integrado, 9 de noviembre de 2026
+
+El inicio ahora carga `HomePage.astro` en ES/EN con el carrusel aprobado: cinco mensajes activos,
+flechas, indicadores, pausa, teclado, cinta de marcas y accesos a decants, completos, pedidos y
+carrito. Se usan recortes R02 sin marcos ovalados. Las cifras, marcas y muestras proceden del
+catálogo; no hay precios nuevos ni ofertas inventadas. La promoción de ejemplo está desactivada.
+
+Backend completo antes del frontend: modelos de mensajes y fotos en `commerce`, funciones SQL,
+validación de enlaces y fechas, permisos `commerce:write`, CSRF, versiones, auditoría y control
+de visibilidad de medios. La migración `de252c02c932` se generó desde modelos, revisó y aplicó;
+Alembic no detecta diferencias. `beront inicializar-home` creó seis mensajes sin tocar catálogo,
+precios o inventario y conserva las ediciones cuando se repite. Configuración incorpora la
+pestaña «Inicio y mensajes» para texto ES/EN, imágenes de biblioteca, enlaces, orden y vigencia.
+
+Verificados: suite de 157 pruebas de backend más una de migración posterior; 27 unitarias y
+57 pruebas de navegador aprobadas. Astro, ESLint, Prettier, Ruff y compilación correctos.
+Revisión adicional de lectura con el backend real: 900 combinaciones de idioma/ancho/texto/mensaje
+en los tres motores. Las nueve fotos del carrusel conservan todos los píxeles RGBA de los PNG
+aprobados. Recuentos: 130 perfumes, 400 variantes, 154 saldos y cero movimientos. Evidencia:
+`design/reviews/home-implemented-*`. Capturas revisadas en móvil y escritorio.
+
+El propietario autorizó reiniciar únicamente el backend 5000 y se activó el Home. El frontend
+4322 permanece en su proceso existente. El Home real quedó abierto en Chrome. La preservación
+de alfa para nuevas subidas, pendiente de un arranque desde la integración R02, también queda
+cargada. Los servidores y bases de pruebas se retiran al cerrar; no se usaron datos comerciales
+para las pruebas que escriben. No se probaron dispositivos físicos ni lectores de pantalla.
+
+## Ajuste de decants del 8 de noviembre de 2026
+
+Por indicación visual del propietario se intercambian las columnas del estudio: selección y
+filtros a la izquierda, fotografía y frasco animado a la derecha desde 840 px. En móvil se mantiene
+el frasco arriba y la lista debajo. Se actualiza primero el prototipo R02 y se registra la aprobación.
+El ajuste usa las áreas del Grid existente; conserva proporciones, controles y comportamiento.
+
+Verificados prototipo y aplicación: 180 combinaciones de ancho/texto en Chromium, Firefox y
+WebKit, más selección por teclado, filtros y nivel del líquido. Astro sin diagnósticos, ESLint,
+Prettier y compilación correctos. Evidencias `design/reviews/decants-left-selection-*`.
+Las comprobaciones usan un frontend separado contra el backend existente y no escriben datos.
+
+## Actualización del 8 de noviembre de 2026: Inkscape R02
+
+El propietario aprueba e integra los recortes de solo frascos. Se aplicaron 132 PNG maestros a
+135 vínculos de 129 perfumes del catálogo local mediante `beront importar-recortes`. El proceso
+valida las huellas aprobadas, reemplaza los vínculos en una transacción, conserva orden y textos
+alternativos, rechaza asociaciones cambiadas y omite las ya aplicadas. Los originales siguen en
+la biblioteca y en la semilla. Delina permanece sin foto original.
+
+El almacenamiento conserva el alfa con WebP sin pérdida y RGBA exacto, manteniendo el contrato
+de medios y sin cambios de esquema o dependencias. El frontend usa estos recursos en carrusel,
+decants, ficha y carrito; se retiran fondos ovalados, filtros de brillo y mezcla de color. La
+extracción del color ambiental del decant ignora píxeles invisibles y pondera la transparencia.
+
+Verificados los 132 derivados contra sus PNG: igualdad de todos los píxeles RGBA. Se compararon
+antes/después los productos, variantes, precios, 154 saldos, movimientos, posiciones, etiquetas
+y huellas de los 132 originales: sin cambios fuera de los vínculos previstos. Validación posterior:
+135 ya aplicados. Evidencia en `design/reviews/implemented-r02-data-check.json`.
+
+Pruebas ejecutadas: 152 de backend, Ruff, `astro check` sin diagnósticos, ESLint, Prettier,
+compilación y 27 unitarias del frontend. Las 48 pruebas de navegador pasan en Chromium, Firefox
+y WebKit usando PostgreSQL, API y frontend temporales. La prueba nueva carga un PNG con alfa por
+la administración y verifica transparencia, contención y ausencia de marcos/filtros en 15 anchos
+de 320 a 1920 px, con texto normal y muy grande, más la ficha. Se corrigió una espera prematura
+de inicio de sesión en esa prueba; la ejecución completa posterior terminó sin fallos.
+
+La aplicación real se abrió en Chrome en `localhost:4322`. No se reiniciaron los servidores del
+propietario. El código para futuras cargas con alfa se activará en el siguiente arranque normal
+del backend; el importador ya usa el código nuevo y las fotos actuales funcionan en el proceso
+existente. La portada de mensajes destacados continúa fuera de esta integración.
+
+Revisión adicional de solo lectura del catálogo real: 360 combinaciones entre carrusel, decants,
+frasco ancho y ficha, con 15 anchos y dos tamaños de texto, en los tres motores. Los 132 medios
+responden por HTTP y se decodifican con alfa en cada motor; las respuestas se reutilizan para
+respetar el límite de peticiones. Delina oculta el espacio de foto vacía. Se revisaron capturas
+a 390 y 1440 px de completos, decants y ficha; evidencias `design/reviews/implemented-r02-*`.
+No se probaron dispositivos físicos ni lectores de pantalla.
+
+## Actualización del 7 de noviembre de 2026
+
+Se integra la navegación inferior del prototipo aprobado `home-menu-principal.html`: botón
+central, panel de tienda, idioma, accesibilidad y administración según sesión y permisos del
+backend. Se comparte entre los layouts público y administrativo; el carrito mantiene los accesos
+de cabecera, panel y resumen y deja de ocupar la posición flotante central. La portada con
+mensajes destacados continúa pendiente del backend; no se añadieron endpoints ni esquema.
+
+El propietario descarta las imágenes sin fondo, incluida la revisión 04 de recortes y sus vistas.
+Se actualizan el registro visual, el índice de diseño y la memoria. Las fotos originales y su
+presentación actual se conservan; los HTML de recortes quedan como antecedentes descartados.
+
+Verificación ejecutada: `astro check` sin diagnósticos, ESLint, Prettier, compilación, 27 pruebas
+unitarias y 45 pruebas de navegador aprobadas en Chromium, Firefox y WebKit. Las nuevas pruebas
+comprueban el menú en 14 anchos de 320 a 1920 px, texto muy grande, contraste, movimiento reducido,
+teclado/flechas, retorno del foco, cambio de idioma, carrito, permisos y cierre de sesión. La
+primera ejecución detectó una salida del foco al recorrer con Tab en Chromium; se corrigió y la
+segunda ejecución completa terminó con 45 aprobadas y cero fallos.
+
+Las pruebas de navegador usaron PostgreSQL, API y frontend temporales, eliminados al finalizar;
+no usaron datos comerciales. No se probaron dispositivos físicos ni lectores de pantalla.
+
+## Actualización del 2 de noviembre de 2026
+
+Backend y frontend quedaron alineados y el contenido temporal se retiró; ver
+[AUDITORIA.md](AUDITORIA.md). Lo anterior en este documento es histórico: las revisiones de
+migración `c449e445ed3d` y anteriores se sustituyeron por la migración única `0e7393567f81` y dos
+revisiones posteriores, y el editor de perfumes ya asigna acordes, usos y perfiles.
+
+## Actualización del 2 de noviembre de 2026 (estudio de decants)
+
+El propietario aprobó la vista C (Frasco vivo con lista y carrito) y se implementó primero el
+backend: `POST /cart/quote` devuelve por línea `product_slug`, `image_url` y `options`, con prueba
+de integración. En el frontend: nueva página de decants, carrito con tarjeta por línea (frasco,
+mililitros editables, cantidad y total), `CartStore.replace`, panel de accesibilidad (tamaño de
+texto, contraste y reducción de animaciones), tipografías en `rem` y verificación en los anchos
+320, 390, 600, 768, 840, 1024, 1200, 1440, 1600 y 1920 px. El mismo día se implementó el carrusel de perfumes completos con la cinta de marcas
+(`/es/catalog/full-bottles`) y la portada pasó a mostrar el estudio de decants. Pendiente: decidir
+entre el resumen en página (a) o solo el contador (b) tras agregar.
+
 ## Actualización del 31 de octubre de 2026
 
 El propietario aprobó las revisiones 04 y 05 (checkout, seguimiento, biblioteca, gestión de pedidos
@@ -63,7 +330,7 @@ El flujo es endpoint, validación/decoradores, caso de uso, repositorio y funci�
 
 `pg_call.py` utiliza una lista técnica de funciones permitidas, identificadores SQL seguros y parámetros enlazados. Serializa UUID, Decimal y fechas sin convertir dinero a punto flotante. El usuario de Flask no lee ni modifica tablas directamente.
 
-Cada función tiene su archivo, módulo y versión en `bd/`. Las migraciones registran ruta y SHA-256 y rechazan fuentes modificadas. No se editó la migración inicial aplicada. Cada cambio posterior tiene su revisión propia; la última revisión modifica una función sin cambiar tablas.
+Cada función tiene su archivo en `backend/bd/<modulo>/funciones/`, con su definición vigente y sin carpetas de versión. La migración inicial única instala todas las funciones; un cambio posterior de una función se instala con una migración nueva.
 
 Las unidades de trabajo confirman las operaciones completas; un error revierte cambios y cierra la conexión. El dominio permanece independiente de Flask, SQLAlchemy y Pydantic.
 
@@ -178,16 +445,16 @@ Desde `backend/`:
 uv sync --locked
 uv run alembic upgrade head
 uv run alembic check
-uv run flask --app beront.app:create_app createsuperuser
-uv run python semillas/importar_catalogo.py
-uv run python semillas/importar_catalogo.py --apply
-uv run flask --app beront.app:create_app run --host 127.0.0.1 --port 5000
+uv run beront createsuperuser
+uv run beront importar-catalogo --solo-validar
+uv run beront importar-catalogo
+uv run beront run
 ~~~
 
 La base ya está migrada: repetir `upgrade head` no modifica revisiones aplicadas. `createsuperuser` pide usuario y contraseña oculta; solo se ejecuta para crear al propietario una vez. No se inventó una cuenta. Para recuperar acceso:
 
 ~~~powershell
-uv run flask --app beront.app:create_app reset-password NOMBRE_DE_USUARIO
+uv run beront reset-password NOMBRE_DE_USUARIO
 ~~~
 
 Antes de probar checkout, registrar contacto, ciudades/tarifas, bancos y términos desde sus endpoints administrativos; las nuevas pantallas de configuración esperan aprobación visual.
@@ -199,7 +466,7 @@ bun.cmd install --frozen-lockfile
 bun.cmd run dev
 ~~~
 
-Abrir `http://localhost:4321`, coherente con `FRONTEND_ORIGIN`. Los prototipos están en `/temporal/checkout.html`, `/temporal/order-tracking.html`, `/temporal/admin-settings.html`, `/temporal/admin-media.html` y `/temporal/admin-orders.html`.
+Abrir `http://localhost:4321`, coherente con `FRONTEND_ORIGIN`.
 
 Verificación:
 
@@ -214,8 +481,7 @@ bun.cmd run check
 bun.cmd run lint
 bun.cmd run test
 bun.cmd run build
-$env:BERONT_TEMPORARY_BASE_URL='http://127.0.0.1:4321'
-bun.cmd x --bun playwright test tests/e2e/temporary-commerce.spec.ts --workers=1
+bun.cmd run test:app
 ~~~
 
 ## Próximo paso y cierre pendiente
@@ -226,3 +492,63 @@ Una vez aprobadas las nuevas vistas se implementarán sus páginas Astro contra 
 
 No se realizaron operaciones que modifiquen Git, ni tareas de despliegue.
 
+
+## Perfumes completos R05 integrado, 12 de noviembre de 2026
+
+El propietario autoriza integrar la revisión vigente de completos. `CylinderPage.astro`
+agrupa nombre y selector de mililitros, con precio y botón a su lado debajo. El carrusel
+conserva frascos grandes y miniaturas accesibles más abajo. Se retiran la cinta de marcas,
+su animación y su región de actualización; los filtros siguen usando las regiones reales
+existentes. El fondo contiene tres filas decorativas con el nombre activo, ajustadas a su
+ancho y altura por `cylinder.ts`. Los estilos se integran en el bloque existente de
+`global.css`, sin duplicar capas del prototipo. Se conservan datos y disponibilidad del backend.
+
+288 comprobaciones de los doce perfumes en Chromium, Firefox y WebKit a 320×568, 360×667,
+390×844, 768×1024, 1024×768, 1440×900, 1920×1080 y 2560×1440. Se verifican visibilidad de
+compra, margen respecto al menú, filas y fondo, filtros sin recarga, teclado, ES/EN, texto
+ampliado, alto contraste y paneles de menú/accesibilidad. Astro check, ESLint, Prettier,
+build y dos pruebas unitarias correctos. Evidencias `design/reviews/completos-r05-integrated-*`.
+Vista real abierta en Chrome; no se reinician los servidores 5000/4322. Se cierra 4323 al terminar.
+
+## Orden alfabético por marca y modelo, 12 de noviembre de 2026
+
+`CatalogQueryFacade.search` ordena los resultados públicos por marca, modelo e identificador
+antes de aplicar la paginación. Afecta al orden predeterminado y al valor existente `sort=name`
+en decants y completos. Los órdenes por precio y los listados privados se conservan. No se
+modifican funciones SQL ni esquema. El selector compartido etiqueta el orden «Marca y modelo»
+en español y «Brand and name» en inglés. 19 pruebas de catálogo, Ruff, ESLint, formato y
+Astro check correctos. Los datos locales se consultaron sin escritura para comprobar el
+orden completo, documentado en `design/reviews/catalog-brand-order-data.json`.
+
+## Cinco completos añadidos, 12 de noviembre de 2026
+
+Por solicitud del propietario se reutilizan las fichas y fotografías actuales, mediante
+`CatalogService`, con auditoría y control de versión. Se reactivan Le Male Le Parfum
+125 ml $165, Le Beau Le Parfum 125 ml $168 y Valentino Uomo Born in Roma Intense 100 ml
+$168. Se crean las presentaciones completas de Le Male Elixir 125 ml $165 y Ultra Male
+125 ml $155. Las presentaciones globales de 100/125 ml ya existían y estaban activas.
+El catálogo público pasa de 12 a 17 completos. Se conservan fotos, fichas y decants;
+no se registran movimientos de inventario y las cinco presentaciones tienen stock cero.
+
+La API confirma los cinco precios, tamaños y fotografías. 120 comprobaciones correctas
+en Chromium, Firefox y WebKit a 320×568, 360×667, 390×844, 768×1024, 1024×768, 1440×900,
+1920×1080 y 2560×1440, con los cinco perfumes: información comercial visible y sin
+superposición del menú. Evidencias `design/reviews/completos-added-jpg-valentino*`.
+No se modificó código ni esquema y no se reiniciaron los servidores existentes.
+
+## Navegación temporal de catálogo, 13 de noviembre de 2026
+
+`PUBLIC_CATALOG_ONLY` activa por defecto Inicio, Decants y Perfumes completos en la interfaz
+pública. `features/catalog/storefront.ts` centraliza el modo y los destinos del Home.
+SiteLayout omite pedidos, carrito y acceso administrativo; MainMenu recibe el modo desde
+ese layout, mientras AdminLayout conserva sus controles privados. Los botones de compra
+y resúmenes no se renderizan en catálogos/ficha; sus controladores admiten la ausencia de
+estos controles, manteniendo la selección de tamaños, precios y fotos. Idioma y panel de
+accesibilidad siguen disponibles en cabecera. No se retiran rutas, APIs ni datos.
+
+El arnés de pruebas existentes inicia el frontend con `PUBLIC_CATALOG_ONLY=false` para
+conservar las regresiones de las funciones completas. Se actualiza la prueba de fotos
+para seleccionar explícitamente un decant, conforme al R05 aprobado que no autoselecciona.
+75 comprobaciones de modo catálogo y 15 pruebas de funciones completas correctas en tres
+navegadores; 27 unitarias correctas, tipos, lint, formato y build sin errores. Capturas y
+resultados `design/reviews/catalog-only-*`. Se conserva 5000/4322 y se cierra la revisión 4323.

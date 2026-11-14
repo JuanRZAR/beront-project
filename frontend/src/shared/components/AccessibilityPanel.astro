@@ -1,0 +1,52 @@
+---
+import Icon from "./Icon.astro";
+import { translate, type Locale } from "../i18n";
+interface Props {
+  locale: Locale;
+}
+const { locale } = Astro.props;
+const t = translate(locale);
+---
+
+<div class="a11y">
+  <button
+    type="button"
+    class="a11y-toggle"
+    popovertarget="a11y-panel"
+    aria-label={t("accessibility")}
+  >
+    <Icon name="accessibility" />
+  </button>
+  <div id="a11y-panel" class="a11y-panel" popover="auto">
+    <h2 id="a11y-title">{t("accessibility")}</h2>
+    <fieldset>
+      <legend>{t("textSize")}</legend>
+      <div class="a11y-options" role="group" aria-labelledby="a11y-title">
+        <button type="button" data-text="" aria-pressed="true">
+          {t("textNormal")}
+        </button>
+        <button type="button" data-text="large" aria-pressed="false">
+          {t("textLarge")}
+        </button>
+        <button type="button" data-text="xlarge" aria-pressed="false">
+          {t("textXLarge")}
+        </button>
+      </div>
+    </fieldset>
+    <label class="a11y-switch">
+      <input type="checkbox" data-contrast />
+      <span>{t("highContrast")}</span>
+    </label>
+    <label class="a11y-switch">
+      <input type="checkbox" data-motion />
+      <span>{t("reduceMotion")}</span>
+    </label>
+    <button type="button" class="text-button" data-a11y-reset>
+      {t("resetAccessibility")}
+    </button>
+    <p class="hint">{t("accessibilityHelp")}</p>
+  </div>
+</div>
+<script>
+  import "./accessibility";
+</script>

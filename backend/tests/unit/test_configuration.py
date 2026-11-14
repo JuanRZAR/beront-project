@@ -54,3 +54,17 @@ def test_smtp_is_read_from_the_environment(monkeypatch):
     )
     monkeypatch.delenv("SMTP_HOST")
     assert Settings.from_env().smtp_host == ""
+
+
+def test_cart_stock_validation_is_strict_by_default_and_explicitly_configurable(monkeypatch):
+    monkeypatch.setenv("DATABASE_URL", "postgresql+psycopg://localhost/beront")
+    monkeypatch.setenv("SECRET_KEY", secrets.token_urlsafe(32))
+    monkeypatch.delenv("CART_REQUIRES_STOCK", raising=False)
+    assert Settings.from_env().cart_requires_stock
+    monkeypatch.setenv("CART_REQUIRES_STOCK", "false")
+    assert not Settings.from_env().cart_requires_stock
+    monkeypatch.setenv("CART_REQUIRES_STOCK", "true")
+    assert Settings.from_env().cart_requires_stock
+    monkeypatch.setenv("CART_REQUIRES_STOCK", "typo")
+    with pytest.raises(ValueError, match="CART_REQUIRES_STOCK"):
+        Settings.from_env()

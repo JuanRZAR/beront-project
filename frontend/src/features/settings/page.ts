@@ -3,6 +3,7 @@ import { bindForm } from "../../shared/http/forms";
 import { errorMessage } from "../../shared/http/errors";
 import { translate, type Locale } from "../../shared/i18n";
 import { byId, el, setStatus, slugify } from "../../shared/components/dom";
+import { loadMessages } from "./messages";
 import type {
   AdminBrand,
   Bank,
@@ -68,6 +69,37 @@ function editButton(fill: () => void) {
   return button;
 }
 
+function toggleButton(
+  path: string,
+  row: { id: string; version: number; active?: boolean },
+  key: string,
+) {
+  const active = row.active !== false;
+  const button = el("button", t(active ? "deactivate" : "activate"), {
+    type: "button",
+    class: "text-button",
+  }) as HTMLButtonElement;
+  button.addEventListener("click", async () => {
+    button.disabled = true;
+    try {
+      await api(
+        path + "/" + row.id,
+        jsonRequest("PATCH", { version: row.version, active: !active }),
+      );
+      await reload(key);
+      flash(t("saved"));
+    } catch (error) {
+      failure(error);
+      button.disabled = false;
+    }
+  });
+  return button;
+}
+const stateOf = (row: { active?: boolean }) =>
+  row.active === false ? t("inactive") : "";
+const detailOf = (...parts: (string | undefined | false)[]) =>
+  parts.filter(Boolean).join(" · ");
+
 function renderOptions(resource: (typeof OPTIONS)[number]) {
   const list = byId("list-" + resource);
   const items = rows[resource] ?? [];
@@ -82,9 +114,11 @@ function renderOptions(resource: (typeof OPTIONS)[number]) {
               : [];
           const li = item(
             label(row),
-            resource === "categories"
-              ? `${names.length} ${t("houses")}: ${names.join(", ")}`
-              : undefined,
+            detailOf(
+              resource === "categories" &&
+                `${names.length} ${t("houses")}: ${names.join(", ")}`,
+              stateOf(row),
+            ) || undefined,
           );
           li.append(
             editButton(() => {
@@ -97,6 +131,7 @@ function renderOptions(resource: (typeof OPTIONS)[number]) {
               (form.elements.namedItem("name_es") as HTMLInputElement).focus();
             }),
           );
+          li.append(toggleButton(catalogPath(resource), row, resource));
           return li;
         })
       : [emptyRow()]),
@@ -125,12 +160,19 @@ function renderBrands() {
 }
 function renderPresentations() {
   byId("list-presentations").replaceChildren(
-    ...(rows.presentations ?? []).map((row) =>
-      item(
+    ...(rows.presentations ?? []).map((row) => {
+      const li = item(
         label(row),
-        `${row.kind === "decant" ? "Decant" : t("fullBottle")} · ${Number(row.volume_ml)} ml`,
-      ),
-    ),
+        detailOf(
+          `${row.kind === "decant" ? "Decant" : t("fullBottle")} · ${Number(row.volume_ml)} ml`,
+          stateOf(row),
+        ),
+      );
+      li.append(
+        toggleButton(catalogPath("presentations"), row, "presentations"),
+      );
+      return li;
+    }),
   );
 }
 function renderDelivery() {
@@ -144,7 +186,10 @@ function renderDelivery() {
           const province = provinces.find((row) => row.id === city.province_id);
           const li = item(
             city.name,
-            `${province?.name ?? ""} · USD ${city.shipping_fee}`,
+            detailOf(
+              `${province?.name ?? ""} · USD ${city.shipping_fee}`,
+              stateOf(city),
+            ),
           );
           li.append(
             editButton(() => {
@@ -158,6 +203,7 @@ function renderDelivery() {
               byId("province-code-field").hidden = true;
               (form.elements.namedItem("fee") as HTMLInputElement).focus();
             }),
+            toggleButton("/api/v1/admin/commerce/cities", city, "delivery"),
           );
           return li;
         })
@@ -166,9 +212,17 @@ function renderDelivery() {
 }
 function renderBanks() {
   byId("list-banks").replaceChildren(
-    ...banks.map((bank) =>
-      item(bank.bank_name, `${bank.account_type} · ${bank.account_number}`),
-    ),
+    ...banks.map((bank) => {
+      const li = item(
+        bank.bank_name,
+        detailOf(
+          `${bank.account_type} · ${bank.account_number}`,
+          stateOf(bank),
+        ),
+      );
+      li.append(toggleButton("/api/v1/admin/commerce/banks", bank, "banks"));
+      return li;
+    }),
   );
 }
 function renderContact() {
@@ -186,7 +240,10 @@ function renderFlow() {
     ...statuses.map((row) => {
       const li = item(
         label(row),
-        row.purpose ? t("entryStatus") : t("workflowStatus"),
+        detailOf(
+          row.purpose ? t("entryStatus") : t("workflowStatus"),
+          stateOf(row),
+        ),
       );
       li.append(
         editButton(() => {
@@ -201,6 +258,7 @@ function renderFlow() {
           phase.disabled = true;
           (form.elements.namedItem("name_es") as HTMLInputElement).focus();
         }),
+        toggleButton("/api/v1/admin/order-flow/statuses", row, "flow"),
       );
       return li;
     }),
@@ -211,12 +269,19 @@ function renderFlow() {
   };
   byId("list-transitions").replaceChildren(
     ...(transitions.length
-      ? transitions.map((row) =>
-          item(
+      ? transitions.map((row) => {
+          const li = item(
             name(row.from_status_id),
-            t("canChangeTo") + " " + name(row.to_status_id),
-          ),
-        )
+            detailOf(
+              t("canChangeTo") + " " + name(row.to_status_id),
+              stateOf(row),
+            ),
+          );
+          li.append(
+            toggleButton("/api/v1/admin/order-flow/transitions", row, "flow"),
+          );
+          return li;
+        })
       : [emptyRow()]),
   );
   for (const id of ["flow-from", "flow-to"])
@@ -226,6 +291,7 @@ function renderFlow() {
 }
 
 const loaders: Record<string, () => Promise<void>> = {
+  home: loadMessages,
   async categories() {
     [rows.categories, brands] = await Promise.all([
       fetchList<OptionRow>(catalogPath("categories")),

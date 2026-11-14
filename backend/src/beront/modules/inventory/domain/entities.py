@@ -13,6 +13,14 @@ class Balance:
     version: int
 
 
+@dataclass(frozen=True)
+class StockLabel:
+    product_id: UUID | None
+    product_name: str
+    brand_name: str
+    volume_ml: Decimal | None
+
+
 @dataclass
 class Movement:
     id: UUID

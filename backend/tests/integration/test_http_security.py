@@ -81,3 +81,9 @@ def test_login_rate_limit(settings):
     )
     assert response.status_code == 429
     app.extensions["beront"].engine.dispose()
+
+
+def test_root_reports_api_ready_and_version(client):
+    response = client.get("/")
+    assert response.status_code == 200
+    assert response.json == {"data": {"message": "API lista", "version": "0.1.0", "api": "v1"}}

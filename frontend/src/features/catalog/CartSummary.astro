@@ -1,0 +1,23 @@
+---
+import { translate, type Locale } from "../../shared/i18n";
+import { cartEnabled } from "./storefront";
+interface Props {
+  locale: Locale;
+}
+const t = translate(Astro.props.locale);
+---
+
+{cartEnabled && (
+  <div class="studio-summary" data-summary hidden>
+    <p>
+      <span data-summary-text></span>
+      <span class="summary-total">
+        {t("summaryTotal")}
+        <strong data-summary-total>—</strong>
+      </span>
+    </p>
+    <button type="button" class="button outline" data-open-cart>
+      {t("viewCart")}
+    </button>
+  </div>
+)}

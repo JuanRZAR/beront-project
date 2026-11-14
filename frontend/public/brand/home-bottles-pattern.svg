@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="360" height="260" viewBox="0 0 360 260" fill="none" stroke="#b8a58a" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+  <defs>
+    <g id="pointed">
+      <path d="M23 16C26 12 29 2 32 2s6 10 9 14c0 6-1 10-2 13H25c-1-3-2-7-2-13ZM23 16q9 3 18 0M32 18v9"/>
+      <rect x="22" y="29" width="20" height="5" rx="1.5"/>
+      <path d="M23 34v2m18-2v2M24 36h16c10 3 17 11 16 21 0 19-4 35-9 44-9 3-21 3-30 0-5-9-9-25-9-44C7 47 14 39 24 36Z"/>
+      <path d="M25 37c-7 12-6 43-1 65M39 37c7 12 6 43 1 65M24 57h16l-3 22H27ZM26 59h12l-2.5 18h-7Z"/>
+    </g>
+    <g id="torso">
+      <rect x="27.5" y="2" width="9" height="11" rx="1.5"/>
+      <circle cx="32" cy="5" r="1.2"/>
+      <circle cx="32" cy="15" r="4"/>
+      <path d="M28 12q-5 1-2 5l3 2m7-7q5 1 2 5l-3 2M25 20h14v3H25Z"/>
+      <path d="M25 23h14c2 4 2 4 6 6l7 3q4 1 3 7l-8 28c-2 6 4 18 4 31q0 4-4 4H17q-4 0-4-4c0-13 6-25 4-31L9 39q-1-6 3-7l7-3c4-2 4-2 6-6Z"/>
+      <path d="M10 37q22-4 44 0M11 42q21-4 42 0M13 48q19-3 38 0M14 54q18-3 36 0M16 60q16-2 32 0M17 66h30M18 71h28"/>
+    </g>
+    <g id="stud">
+      <path d="M-5-3.5H5v7H-5ZM-5-3.5 0 0l5-3.5M-5 3.5 0 0l5 3.5" stroke-width="1"/>
+    </g>
+    <g id="studded">
+      <path d="M22 4c0-3 20-3 20 0v10c-5 2-15 2-20 0ZM24 16v3m16-3v3M20 19h24v10H20Z"/>
+      <use href="#stud" x="26" y="24"/><use href="#stud" x="38" y="24"/>
+      <path d="M23 29h18c2 3 9 4 12 8l5 5-2 4 4 5-2 5 2 5-2 5 2 5-2 5 2 5-2 5 2 5c0 7-3 11-10 11H14C7 102 4 98 4 91l2-5-2-5 2-5-2-5 2-5-2-5 2-5-2-5 4-5-2-4 5-5c3-4 10-5 12-8Z"/>
+      <use href="#stud" x="21" y="37"/><use href="#stud" x="32" y="37"/><use href="#stud" x="43" y="37"/>
+      <use href="#stud" x="10" y="45"/><use href="#stud" x="21" y="45"/><use href="#stud" x="32" y="45"/><use href="#stud" x="43" y="45"/><use href="#stud" x="54" y="45"/>
+      <use href="#stud" x="10" y="53"/><use href="#stud" x="21" y="53"/><use href="#stud" x="32" y="53"/><use href="#stud" x="43" y="53"/><use href="#stud" x="54" y="53"/>
+      <rect x="12" y="57" width="40" height="17" rx="1"/>
+      <use href="#stud" x="10" y="79"/><use href="#stud" x="21" y="79"/><use href="#stud" x="32" y="79"/><use href="#stud" x="43" y="79"/><use href="#stud" x="54" y="79"/>
+      <use href="#stud" x="10" y="87"/><use href="#stud" x="21" y="87"/><use href="#stud" x="32" y="87"/><use href="#stud" x="43" y="87"/><use href="#stud" x="54" y="87"/>
+      <use href="#stud" x="10" y="95"/><use href="#stud" x="21" y="95"/><use href="#stud" x="32" y="95"/><use href="#stud" x="43" y="95"/><use href="#stud" x="54" y="95"/>
+    </g>
+    <g id="trophy">
+      <path d="M10 13V6q0-2-2-2H3Q1 4 1 6l1 37c1 20 4 25 10 30l-1-11C6 52 6 27 5 8h2v5ZM54 13V6q0-2 2-2h5q2 0 2 2l-1 37c-1 20-4 25-10 30l1-11c5-10 5-35 6-54h-2v5Z"/>
+      <path d="M17 5q15-3 30 0l2 4q1 3 7 4v18H8V13q6-1 7-4ZM8 14h48M9 19h19m8 0h19M9 23h19m8 0h19M9 27h19m8 0h19"/>
+      <rect x="29" y="17" width="6" height="12" rx="3"/>
+      <circle cx="32" cy="22" r="1.3"/>
+      <path d="M8 31h48l-2 34c-6 9-10 12-18 22l-1 2h-6l-1-2c-8-10-12-13-18-22ZM11 34l21 55 21-55M10 65l18 22m26-22L36 87"/>
+      <path d="M14 92c0-4 36-4 36 0v8c0 4-36 4-36 0ZM14 92c0 4 36 4 36 0M29 89v1m6-1v1"/>
+    </g>
+  </defs>
+  <use href="#pointed" transform="translate(13 10) rotate(-10 32 52)"/>
+  <use href="#torso" transform="translate(103 10) rotate(10 32 52)"/>
+  <use href="#studded" transform="translate(193 10) rotate(-10 32 52)"/>
+  <use href="#trophy" transform="translate(283 10) rotate(10 32 52)"/>
+  <use href="#studded" transform="translate(13 140) rotate(10 32 52)"/>
+  <use href="#trophy" transform="translate(103 140) rotate(-10 32 52)"/>
+  <use href="#pointed" transform="translate(193 140) rotate(10 32 52)"/>
+  <use href="#torso" transform="translate(283 140) rotate(-10 32 52)"/>
+</svg>

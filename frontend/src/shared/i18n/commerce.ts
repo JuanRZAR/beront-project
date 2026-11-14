@@ -251,8 +251,6 @@ const es: Record<string, string> = {
   clearCart: "Vaciar carrito",
   quickAdd: "Agregar",
   productsTotal: "Total de productos",
-  cartLabel: "Carrito de compras",
-  mainNavigation: "Navegación principal",
 };
 
 const en: Record<string, string> = {
@@ -501,8 +499,6 @@ const en: Record<string, string> = {
   clearCart: "Empty cart",
   quickAdd: "Add",
   productsTotal: "Product total",
-  cartLabel: "Shopping cart",
-  mainNavigation: "Main navigation",
 };
 
 export default { es, en } as Record<"es" | "en", Record<string, string>>;

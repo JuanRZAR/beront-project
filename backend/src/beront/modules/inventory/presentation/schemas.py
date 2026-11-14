@@ -2,7 +2,19 @@ from typing import Annotated
 
 from pydantic import Field
 
-from beront.shared.presentation.schemas import DecimalInput, Identifier, Kind, Schema, Version
+from beront.shared.presentation.schemas import (
+    DecimalInput,
+    Identifier,
+    Kind,
+    PageQuery,
+    Schema,
+    Version,
+)
+
+
+class BalanceQuery(PageQuery):
+    kind: Kind | None = None
+    q: Annotated[str, Field(max_length=120)] = ""
 
 
 class AdjustmentBody(Schema):

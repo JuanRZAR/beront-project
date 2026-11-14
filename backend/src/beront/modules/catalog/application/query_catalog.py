@@ -31,15 +31,20 @@ def matching_variants(product, filters, *, private=False):
 
 
 class CatalogQueryFacade:
-    def __init__(self, uow_factory):
+    def __init__(self, uow_factory, *, require_stock=True):
         self.uow_factory = uow_factory
+        self.require_stock = require_stock
 
     @staticmethod
-    def _availability(products, repository):
-        requirements = [
-            StockRequirement(p.id, v.id, v.kind, v.volume_ml) for p in products for v in p.variants
-        ]
-        availability = StockAvailability(repository).inspect(requirements)
+    def _availability(products, repository, *, require_stock=True):
+        availability = {}
+        if require_stock:
+            requirements = [
+                StockRequirement(p.id, v.id, v.kind, v.volume_ml)
+                for p in products
+                for v in p.variants
+            ]
+            availability = StockAvailability(repository).inspect(requirements)
         for product in products:
             for variant in product.variants:
                 availability[variant.id] = (
@@ -48,7 +53,7 @@ class CatalogQueryFacade:
                     and variant.active
                     and variant.presentation_active
                     and not variant.sold_out
-                    and availability.get(variant.id, False)
+                    and (not require_stock or availability.get(variant.id, False))
                 )
         return availability
 
@@ -62,7 +67,9 @@ class CatalogQueryFacade:
                 )
                 if not products:
                     break
-                availability = self._availability(products, uow.stock)
+                availability = self._availability(
+                    products, uow.stock, require_stock=private or self.require_stock
+                )
                 for product in products:
                     variants = matching_variants(product, filters, private=private)
                     if filters.get("available") is not None:
@@ -76,12 +83,22 @@ class CatalogQueryFacade:
                             )
                         )
                 offset += len(products)
+                if len(products) < 100:
+                    break
             order = filters.get("sort", "name")
             if order in {"price_asc", "price_desc"}:
                 sign = -1 if order == "price_desc" else 1
                 views.sort(
                     key=lambda view: (
                         sign * view.minimum_price,
+                        view.product.name.casefold(),
+                        view.product.id,
+                    )
+                )
+            elif not private:
+                views.sort(
+                    key=lambda view: (
+                        view.product.brand_name.casefold(),
                         view.product.name.casefold(),
                         view.product.id,
                     )
@@ -95,7 +112,11 @@ class CatalogQueryFacade:
             if not product.visible:
                 raise NotFound()
             variants = [v for v in product.variants if v.active and v.presentation_active]
-            return ProductView(product, variants, self._availability([product], uow.stock))
+            return ProductView(
+                product,
+                variants,
+                self._availability([product], uow.stock, require_stock=self.require_stock),
+            )
 
     def facets(self):
         with self.uow_factory() as uow:
@@ -106,37 +127,40 @@ class CatalogQueryFacade:
                     houses[product.brand_id] = product.brand_name
                     sizes.update(v.volume_ml for v in product.variants if v.active)
                 offset += len(products)
+                if len(products) < 100:
+                    break
+            definitions = {
+                key: uow.catalog.definitions(key)
+                for key in (
+                    "categories",
+                    "audiences",
+                    "presentations",
+                    "accords",
+                    "usages",
+                    "profiles",
+                )
+            }
             return {
                 "brands": [
                     {"id": str(key), "name": value}
                     for key, value in sorted(houses.items(), key=lambda item: item[1].casefold())
                 ],
                 "volumes_ml": [format(size, ".2f") for size in sorted(sizes)],
-                "classifications": [row["slug"] for row in uow.catalog.definitions("categories")],
-                "audiences": [row["slug"] for row in uow.catalog.definitions("audiences")],
-                "accords": [row["slug"] for row in uow.catalog.definitions("accords")],
-                "usages": [row["slug"] for row in uow.catalog.definitions("usages")],
-                "profiles": [row["slug"] for row in uow.catalog.definitions("profiles")],
-                "kinds": sorted({row["kind"] for row in uow.catalog.definitions("presentations")}),
-                "definitions": {
-                    key: uow.catalog.definitions(key)
-                    for key in (
-                        "categories",
-                        "audiences",
-                        "presentations",
-                        "accords",
-                        "usages",
-                        "profiles",
-                    )
-                },
+                "classifications": [row["slug"] for row in definitions["categories"]],
+                "audiences": [row["slug"] for row in definitions["audiences"]],
+                "accords": [row["slug"] for row in definitions["accords"]],
+                "usages": [row["slug"] for row in definitions["usages"]],
+                "profiles": [row["slug"] for row in definitions["profiles"]],
+                "kinds": sorted({row["kind"] for row in definitions["presentations"]}),
+                "definitions": definitions,
             }
 
     def quote_selection(self, quantities):
         with self.uow_factory() as uow:
-            return self.selection_in(uow, quantities)
+            return self.selection_in(uow, quantities, require_stock=self.require_stock)
 
     @staticmethod
-    def selection_in(uow, quantities):
+    def selection_in(uow, quantities, *, require_stock=True):
         products = {}
         selected = []
         problems = []
@@ -163,6 +187,8 @@ class CatalogQueryFacade:
                         "code": "UNAVAILABLE_PRODUCT",
                     }
                 )
+        if not require_stock:
+            return selected, problems
         requirements = [
             StockRequirement(p.id, v.id, v.kind, v.volume_ml, quantity)
             for p, v, quantity in selected

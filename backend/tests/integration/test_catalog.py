@@ -165,6 +165,59 @@ def test_out_of_stock_override_and_price_sorting(client, auth, sample):
     assert result["price_from"] == "20.00"
 
 
+def test_public_catalog_groups_brands_before_pagination_and_preserves_price_sort(
+    app, client, admin, reference_data
+):
+    from decimal import Decimal
+
+    catalog = app.extensions["beront"].catalog
+    expected = []
+    for brand_name, models in (
+        ("Zeta", (("Alpha", "5"), ("zulu", "25"))),
+        ("alpha", (("Zeta", "15"), ("alpha", "35"))),
+    ):
+        brand = catalog.create_brand(
+            {"name": brand_name, "category_id": reference_data["id"]}, admin.id
+        )
+        for model, price in models:
+            product = catalog.create_product(
+                {
+                    "brand_id": brand.id,
+                    "name": model,
+                    "slug": f"{brand_name}-{model}".lower(),
+                    "audience": "unisex",
+                },
+                admin.id,
+            )
+            for kind, volume in (("decant", "5"), ("full_bottle", "100")):
+                catalog.create_variant(
+                    product.id,
+                    {"kind": kind, "volume_ml": Decimal(volume), "price": Decimal(price)},
+                    admin.id,
+                )
+            catalog.update_product(product.id, {"version": 1, "published": True}, admin.id)
+            expected.append((brand_name, model))
+    expected.sort(key=lambda item: (item[0].casefold(), item[1].casefold()))
+    for kind in ("decant", "full_bottle"):
+        path = "/api/v1/catalog/products?kind=" + kind
+        for sort in ("", "&sort=name"):
+            rows = client.get(path + sort).json["data"]
+            assert [(row["brand"]["name"], row["name"]) for row in rows] == expected
+        pages = [client.get(path + f"&page_size=3&page={page}").json for page in (1, 2)]
+        assert all(page["meta"]["total"] == 4 for page in pages)
+        assert [
+            (row["brand"]["name"], row["name"]) for page in pages for row in page["data"]
+        ] == expected
+        filtered = client.get(path + "&q=alpha").json["data"]
+        assert [(row["brand"]["name"], row["name"]) for row in filtered] == expected[:3]
+        for sort, prices in (
+            ("price_asc", ["5.00", "15.00", "25.00", "35.00"]),
+            ("price_desc", ["35.00", "25.00", "15.00", "5.00"]),
+        ):
+            rows = client.get(path + "&sort=" + sort).json["data"]
+            assert [row["price_from"] for row in rows] == prices
+
+
 def image_payload(color="white"):
     buffer = io.BytesIO()
     Image.new("RGB", (10, 10), color).save(buffer, "PNG")
@@ -279,3 +332,28 @@ def test_image_rollback_removes_file(app, admin, sample, monkeypatch):
     with pytest.raises(RuntimeError):
         app.extensions["beront"].catalog.add_image(product.id, image_payload(), {}, admin.id)
     assert not list(app.extensions["beront"].storage.uploads.iterdir())
+
+
+def test_facets_fetch_each_definition_once_and_stop_at_the_last_batch(client, sample, monkeypatch):
+    from collections import Counter
+
+    from beront.shared.infrastructure.pg_call import PgCall
+
+    calls = Counter()
+    original = PgCall.call
+
+    def counted(self, name, payload=None):
+        calls[name] += 1
+        return original(self, name, payload)
+
+    monkeypatch.setattr(PgCall, "call", counted)
+    response = client.get("/api/v1/catalog/facets")
+    assert response.status_code == 200
+    assert sum(calls.values()) == 7
+    assert calls["catalog_candidates"] == 1
+    assert calls["catalog_category_list"] == 1
+    assert calls["catalog_audience_list"] == 1
+    assert calls["catalog_presentation_list"] == 1
+    assert calls["catalog_option_list"] == 3
+    data = response.json["data"]
+    assert data["classifications"] == [row["slug"] for row in data["definitions"]["categories"]]

@@ -30,7 +30,6 @@ export const onRequest = defineMiddleware(async (context, next) => {
         "src",
         "fonts",
         "brand",
-        "temporal",
         "node_modules",
         "_image",
       ].some((prefix) => first.startsWith(prefix)) &&

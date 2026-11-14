@@ -1,6 +1,7 @@
 from datetime import timedelta
+from importlib.metadata import version
 
-from flask import Flask
+from flask import Flask, jsonify
 from flask_limiter import Limiter
 from flask_wtf.csrf import CSRFProtect
 
@@ -58,4 +59,11 @@ def create_app(settings=None, mailer=None):
     app.register_blueprint(orders_blueprint(csrf, limiter))
     app.register_blueprint(cart_blueprint(csrf, limiter))
     install_cli(app)
+
+    @app.get("/")
+    def root():
+        return jsonify(
+            {"data": {"message": "API lista", "version": version("beront"), "api": "v1"}}
+        )
+
     return app

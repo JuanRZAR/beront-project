@@ -1,6 +1,8 @@
 ---
 import "../styles/global.css";
 import Icon from "../components/Icon.astro";
+import AccessibilityPanel from "../components/AccessibilityPanel.astro";
+import MainMenu from "../components/MainMenu.astro";
 import { translate, type Locale } from "../i18n";
 interface Props {
   locale: Locale;
@@ -26,7 +28,7 @@ const language = (value: string) =>
     </title>
     <link rel="icon" href="data:," />
   </head>
-  <body class="bg-brand-white text-brand-black">
+  <body class="bg-brand-white text-brand-black has-main-menu">
     <a class="skip" href="#main">
       {t("skip")}
     </a>
@@ -110,6 +112,7 @@ const language = (value: string) =>
                 EN
               </a>
             </nav>
+            <AccessibilityPanel locale={locale} />
             <span>{user?.username}</span>
             <button class="text-button" id="logout">
               {t("logout")}
@@ -126,6 +129,7 @@ const language = (value: string) =>
         <slot />
       </main>
     </div>
+    <MainMenu locale={locale} currentLabel={title} />
     <div id="toast" class="toast" role="status" hidden></div>
     <script>
       import "../../features/identity/logout";

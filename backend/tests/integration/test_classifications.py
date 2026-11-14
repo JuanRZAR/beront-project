@@ -105,5 +105,25 @@ def test_deactivated_option_is_hidden_from_products_and_filters(client, auth, sa
     assert client.get("/api/v1/catalog/products?profile=dulce").json["meta"]["total"] == 0
 
 
+def test_saving_options_keeps_links_to_deactivated_options(client, auth, sample):
+    product, _ = sample
+    sweet = option(client, auth, "profiles", "dulce", "Dulce", "Sweet")
+    option(client, auth, "profiles", "citrico", "Cítrico", "Citrus")
+    path = "/api/v1/admin/products/" + str(product.id)
+    assert (
+        client.patch(path, json={"version": 2, "profiles": ["dulce"]}, headers=auth).status_code
+        == 200
+    )
+    client.patch(
+        ROOT + "profiles/" + sweet["id"], json={"version": 1, "active": False}, headers=auth
+    )
+    saved = client.patch(path, json={"version": 3, "profiles": ["citrico"]}, headers=auth)
+    assert saved.status_code == 200 and saved.json["data"]["profiles"] == ["citrico"]
+    client.patch(
+        ROOT + "profiles/" + sweet["id"], json={"version": 2, "active": True}, headers=auth
+    )
+    assert sorted(client.get(path).json["data"]["profiles"]) == ["citrico", "dulce"]
+
+
 def test_filters_reject_malformed_values(client):
     assert client.get("/api/v1/catalog/products?accord=NOT%20A%20SLUG").status_code == 422

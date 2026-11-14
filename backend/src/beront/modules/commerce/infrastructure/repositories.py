@@ -29,3 +29,12 @@ class SqlCommerceRepository:
 
     def destination(self, city_id):
         return require_record(self.pg.call("commerce_destination", {"id": city_id}))
+
+    def messages(self, *, private=False):
+        return self.pg.call("commerce_message_list", {"private": private})
+
+    def add_message(self, data):
+        return self.pg.call("commerce_message_add", data)
+
+    def save_message(self, data):
+        return self.pg.call("commerce_message_save", data)

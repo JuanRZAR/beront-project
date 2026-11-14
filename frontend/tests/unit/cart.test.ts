@@ -40,6 +40,7 @@ describe("carrito", () => {
           { variant_id: first, quantity: 10, price: "0.01" },
           { variant_id: first, quantity: 15 },
           { variant_id: second, quantity: true },
+          { variant_id: [second], quantity: 1 },
           { variant_id: "unknown", quantity: 1 },
         ]),
       ),
@@ -72,6 +73,12 @@ describe("carrito", () => {
     other.remove(first);
     cart.invalidate();
     expect(cart.read()).toEqual([{ variant_id: second, quantity: 2 }]);
+  });
+  test("elegir de nuevo la misma presentación conserva la línea y su cantidad", () => {
+    const cart = new CartStore(storage());
+    cart.add(first, 2);
+    cart.replace(first, first);
+    expect(cart.read()).toEqual([{ variant_id: first, quantity: 2 }]);
   });
 });
 test("vista previa de inventario usa aritmética decimal exacta", () => {
@@ -108,4 +115,36 @@ test("las cotizaciones requieren moneda y decimales válidos", () => {
   expect(quoteFingerprint({ ...quote, total: "1.00" })).not.toBe(
     quoteFingerprint(quote),
   );
+});
+describe("carrito: cambio de mililitros", () => {
+  test("reemplaza una presentación conservando posición y cantidad", () => {
+    const cart = new CartStore(storage());
+    cart.add(first, 2);
+    cart.add(second, 1);
+    const third = "0b7f8d2e-9c1a-4d5b-8e3f-1a2b3c4d5e6f";
+    cart.replace(first, third);
+    expect(cart.read()).toEqual([
+      { variant_id: third, quantity: 2 },
+      { variant_id: second, quantity: 1 },
+    ]);
+  });
+  test("fusiona con una línea existente sin superar el límite", () => {
+    const cart = new CartStore(storage());
+    cart.add(first, 13);
+    cart.add(second, 8);
+    expect(() => cart.replace(first, second)).toThrow();
+    expect(cart.read()).toEqual([
+      { variant_id: first, quantity: 13 },
+      { variant_id: second, quantity: 8 },
+    ]);
+    cart.quantity(first, 5);
+    cart.replace(first, second);
+    expect(cart.read()).toEqual([{ variant_id: second, quantity: 13 }]);
+  });
+  test("rechaza identificadores inválidos o ausentes", () => {
+    const cart = new CartStore(storage());
+    cart.add(first, 1);
+    expect(() => cart.replace(first, "x")).toThrow();
+    expect(() => cart.replace(second, first)).toThrow();
+  });
 });

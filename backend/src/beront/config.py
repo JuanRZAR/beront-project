@@ -15,6 +15,7 @@ class Settings:
     storage_root: Path = Path(__file__).resolve().parents[2] / "var"
     testing: bool = False
     rate_limits: bool = True
+    cart_requires_stock: bool = True
     smtp_host: str = ""
     smtp_port: int = 25
     smtp_username: str = ""
@@ -51,10 +52,14 @@ class Settings:
     def from_env(cls):
         if os.getenv("APP_ENV", "local") != "local":
             raise ValueError("Solo se admite el perfil local aprobado.")
+        cart_requires_stock = os.getenv("CART_REQUIRES_STOCK", "true").lower()
+        if cart_requires_stock not in {"true", "false"}:
+            raise ValueError("CART_REQUIRES_STOCK debe ser true o false.")
         return cls(
             database_url=os.environ["DATABASE_URL"],
             secret_key=os.environ["SECRET_KEY"],
             frontend_origin=os.getenv("FRONTEND_ORIGIN", "http://localhost:4321"),
+            cart_requires_stock=cart_requires_stock == "true",
             smtp_host=os.getenv("SMTP_HOST", ""),
             smtp_port=int(os.getenv("SMTP_PORT", "25")),
             smtp_username=os.getenv("SMTP_USERNAME", ""),

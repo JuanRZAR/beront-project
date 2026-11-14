@@ -1,3 +1,5 @@
+> Documento histórico del 26 de octubre de 2026. El estado vigente está en [AUDITORIA.md](AUDITORIA.md).
+
 # Reporte del backend de BÉRONT
 
 Este documento conserva la auditoría del 26 de octubre y el alcance anterior.
@@ -766,14 +768,14 @@ ejecutado contra `beront-bd` al elaborar este informe. Se ejecutan desde `backen
 uv sync --locked
 uv run alembic upgrade head
 uv run alembic check
-uv run flask --app beront.app:create_app create-admin NOMBRE_DE_USUARIO
-uv run flask --app beront.app:create_app run --host 127.0.0.1 --port 5000
+uv run beront create-admin NOMBRE_DE_USUARIO
+uv run beront run
 ```
 
 La contraseña del administrador se solicita de forma oculta. Su recuperación existente es:
 
 ```powershell
-uv run flask --app beront.app:create_app reset-password NOMBRE_DE_USUARIO
+uv run beront reset-password NOMBRE_DE_USUARIO
 ```
 
 Para repetir la verificación del backend:

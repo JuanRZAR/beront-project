@@ -26,6 +26,10 @@ FUNCTIONS = frozenset(
         "commerce_province_save",
         "commerce_settings_get",
         "commerce_settings_save",
+        "commerce_message_get",
+        "commerce_message_list",
+        "commerce_message_add",
+        "commerce_message_save",
         "orders_add",
         "orders_get",
         "orders_history_add",
@@ -137,14 +141,14 @@ class PgCall:
                 raise NotFound() from error
             if code in {"VERSION_CONFLICT", "ADMIN_ALREADY_EXISTS"}:
                 message = (
-                    "Ya existe el ÃƒÂºnico administrador."
+                    "Ya existe el único administrador."
                     if code == "ADMIN_ALREADY_EXISTS"
                     else "El registro ha cambiado. Recarga los datos."
                 )
                 raise Conflict(code, message) from error
             if code == "PRODUCT_NOT_READY":
                 raise DomainError(
-                    code, "Un perfume publicado necesita una presentaciÃƒÂ³n activa."
+                    code, "Un perfume publicado necesita una presentación activa."
                 ) from error
             if code == "INVALID_OPTION":
                 raise DomainError(
@@ -153,19 +157,19 @@ class PgCall:
             if code == "INVALID_ADJUSTMENT":
                 raise DomainError(code, "Las botellas se ajustan por unidades enteras.") from error
             if code == "ASSET_IN_USE":
-                raise Conflict(code, "La fotografÃƒÂ­a estÃƒÂ¡ vinculada a un perfume.") from error
+                raise Conflict(code, "La fotografía está vinculada a un perfume.") from error
             if code == "INVALID_ASSET":
                 raise DomainError(
-                    code, "Selecciona una fotografÃƒÂ­a vÃƒÂ¡lida de la biblioteca."
+                    code, "Selecciona una fotografía válida de la biblioteca."
                 ) from error
             if code == "INVALID_PRESENTATION":
                 raise DomainError(
-                    code, "Configura y activa esta presentaciÃƒÂ³n antes de asignarla."
+                    code, "Configura y activa esta presentación antes de asignarla."
                 ) from error
             if code == "DEFINITION_IN_USE":
                 raise Conflict(
                     code,
-                    "Retira esta presentaciÃƒÂ³n de los perfumes publicados antes de desactivarla.",
+                    "Retira esta presentación de los perfumes publicados antes de desactivarla.",
                 ) from error
             if code in {"QUOTE_CHANGED", "INSUFFICIENT_STOCK", "BANK_UNAVAILABLE"}:
                 raise Conflict(
@@ -179,7 +183,7 @@ class PgCall:
         except psycopg.errors.UniqueViolation as error:
             if error.diag.constraint_name == "uq_administrators_singleton_slot":
                 raise Conflict(
-                    "ADMIN_ALREADY_EXISTS", "Ya existe el ÃƒÂºnico administrador."
+                    "ADMIN_ALREADY_EXISTS", "Ya existe el único administrador."
                 ) from error
             raise Conflict(
                 "DATA_CONFLICT", "El cambio entra en conflicto con los datos existentes."

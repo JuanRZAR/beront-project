@@ -26,6 +26,7 @@ export class CartStore {
         if (
           !entry ||
           typeof entry !== "object" ||
+          typeof entry.variant_id !== "string" ||
           !uuid.test(entry.variant_id) ||
           !Number.isInteger(entry.quantity) ||
           entry.quantity < 1 ||
@@ -78,6 +79,21 @@ export class CartStore {
         item.variant_id === variant_id ? { ...item, quantity } : item,
       ),
     );
+  }
+  replace(from: string, to: string) {
+    const items = this.read(),
+      item = items.find((entry) => entry.variant_id === from),
+      target = items.find((entry) => entry.variant_id === to);
+    if (!item || !uuid.test(to)) throw new Error("CART_LIMIT");
+    if (from === to) return;
+    if (!target) {
+      item.variant_id = to;
+      this.save(items);
+      return;
+    }
+    if (target.quantity + item.quantity > 20) throw new Error("CART_LIMIT");
+    target.quantity += item.quantity;
+    this.save(items.filter((entry) => entry !== item));
   }
   remove(variant_id: string) {
     this.save(this.read().filter((item) => item.variant_id !== variant_id));

@@ -50,6 +50,13 @@ export function errorMessage(error: unknown, locale: Locale) {
     NOT_FOUND: "notFound",
     WHATSAPP_NOT_CONFIGURED: "whatsappNotConfigured",
     INVALID_PHONE: "invalidPhone",
+    CART_LIMIT: "cartLimit",
+    INVALID_QUANTITY: "cartLimit",
+    UNAVAILABLE_QUANTITY: "availableChanged",
+    INVALID_PRESENTATION: "invalidPresentation",
+    INVALID_VARIANT: "invalidPresentation",
+    ORDER_TOTAL_LIMIT: "orderTotalLimit",
+    UNEXPECTED_RECEIPT: "unexpectedReceipt",
   };
   return t(key[error.body.code] ?? "requestFailed");
 }

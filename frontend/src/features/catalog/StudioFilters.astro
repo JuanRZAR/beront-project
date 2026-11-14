@@ -1,0 +1,208 @@
+---
+import Icon from "../../shared/components/Icon.astro";
+import {
+  translate,
+  number,
+  definitionLabel,
+  type Locale,
+} from "../../shared/i18n";
+import type { Facets } from "../../shared/http/contracts";
+interface Props {
+  locale: Locale;
+  query: URLSearchParams;
+  facets: Facets;
+  pathname: string;
+  formId?: string;
+}
+const {
+  locale,
+  query,
+  facets,
+  pathname,
+  formId = "studio-filters",
+} = Astro.props;
+const t = translate(locale);
+const chosen = (key: string, value: string) =>
+  query.getAll(key).includes(value);
+const hasFilters = [...query].some(
+  ([key, value]) =>
+    !["page", "page_size", "sort", "locale", "kind"].includes(key) && value,
+);
+const chipGroups = [
+  ["classification", "family", "classifications", "categories"],
+  ["audience", "publicLabel", "audiences", "audiences"],
+] as const;
+const checkGroups = [
+  ["accord", "accordsTitle", "accords", "accords"],
+  ["usage", "usagesTitle", "usages", "usages"],
+  ["profile", "profilesTitle", "profiles", "profiles"],
+] as const;
+---
+
+<form id={formId} class="studio-filters" method="get">
+  <div class="search-field studio-search">
+    <Icon name="search" />
+    <label class="sr-only" for={formId + "-search"}>
+      {t("search")}
+    </label>
+    <input
+      id={formId + "-search"}
+      type="search"
+      name="q"
+      value={query.get("q") ?? ""}
+      placeholder={t("search")}
+      maxlength="120"
+    />
+  </div>
+  {chipGroups.map(([param, legend, list, resource]) => (
+    <fieldset class="chip-group">
+      <legend>{t(legend)}</legend>
+      <div class="chips">
+        <label class="chip">
+          <input
+            type="radio"
+            name={param}
+            value=""
+            checked={!query.get(param)}
+          />
+          <span>{t("allOption")}</span>
+        </label>
+        {facets[list].map((value) => (
+          <label class="chip">
+            <input
+              type="radio"
+              name={param}
+              value={value}
+              checked={chosen(param, value)}
+            />
+            <span>
+              {definitionLabel(facets.definitions[resource], value, locale)}
+            </span>
+          </label>
+        ))}
+      </div>
+    </fieldset>
+  ))}
+  <div class="studio-sort">
+    <label>
+      <span>{t("sort")}</span>
+      <select name="sort" aria-label={t("sort")}>
+        <option
+          value="name"
+          selected={!query.get("sort") || query.get("sort") === "name"}
+        >
+          {t("sortName")}
+        </option>
+        <option value="price_asc" selected={query.get("sort") === "price_asc"}>
+          {t("sortLow")}
+        </option>
+        <option
+          value="price_desc"
+          selected={query.get("sort") === "price_desc"}
+        >
+          {t("sortHigh")}
+        </option>
+      </select>
+    </label>
+    {hasFilters && (
+      <a class="text-button" href={pathname} data-clear>
+        {t("clear")}
+      </a>
+    )}
+  </div>
+  <details
+    class="studio-more"
+    open={
+      checkGroups.some(([param]) => query.has(param)) ||
+      query.has("brand_id") ||
+      query.has("volume_ml") ||
+      query.has("min_price") ||
+      query.has("max_price") ||
+      query.has("available")
+    }
+  >
+    <summary>{t("moreFilters")}</summary>
+    <div class="studio-more-body">
+      <label class="more-field">
+        <span>{t("house")}</span>
+        <select name="brand_id" aria-label={t("house")}>
+          <option value="">{t("allHouses")}</option>
+          {facets.brands.map((brand) => (
+            <option value={brand.id} selected={chosen("brand_id", brand.id)}>
+              {brand.name}
+            </option>
+          ))}
+        </select>
+      </label>
+      {checkGroups.map(([param, legend, list, resource]) =>
+        facets[list].length ? (
+          <fieldset class="filter-group">
+            <legend>{t(legend)}</legend>
+            {facets[list].map((value) => (
+              <label class="check-label">
+                <input
+                  type="checkbox"
+                  name={param}
+                  value={value}
+                  checked={chosen(param, value)}
+                />
+                <span>
+                  {definitionLabel(facets.definitions[resource], value, locale)}
+                </span>
+              </label>
+            ))}
+          </fieldset>
+        ) : null,
+      )}
+      <fieldset class="filter-group">
+        <legend>{t("size")}</legend>
+        {facets.volumes_ml.map((value) => (
+          <label class="check-label">
+            <input
+              type="checkbox"
+              name="volume_ml"
+              value={value}
+              checked={chosen("volume_ml", value)}
+            />
+            <span>{number(value)} ml</span>
+          </label>
+        ))}
+      </fieldset>
+      <fieldset class="filter-group">
+        <legend>{t("priceUsd")}</legend>
+        <div class="price-fields">
+          <label>
+            <span class="hint">{t("from")}</span>
+            <input
+              name="min_price"
+              type="number"
+              min="0"
+              step=".01"
+              value={query.get("min_price") ?? ""}
+              placeholder="$ 0"
+            />
+          </label>
+          <label>
+            <span class="hint">{t("to")}</span>
+            <input
+              name="max_price"
+              type="number"
+              min="0"
+              step=".01"
+              value={query.get("max_price") ?? ""}
+            />
+          </label>
+        </div>
+      </fieldset>
+      <label class="check-label">
+        <input
+          type="checkbox"
+          name="available"
+          value="true"
+          checked={query.get("available") === "true"}
+        />
+        <span>{t("onlyAvailable")}</span>
+      </label>
+    </div>
+  </details>
+</form>

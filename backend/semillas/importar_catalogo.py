@@ -114,7 +114,10 @@ def main():
         )
         return
     load_dotenv(str(Path(__file__).resolve().parents[1] / ".env"))
-    app = create_app()
+    import_into(create_app(), document)
+
+
+def import_into(app, document):
     services = app.extensions["beront"]
     importer = ImportCatalogSeed(services.uow_factory, services.media)
     result = importer.execute(

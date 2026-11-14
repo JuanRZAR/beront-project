@@ -2,13 +2,22 @@ from datetime import datetime
 from decimal import Decimal
 from uuid import UUID
 
-from beront.modules.inventory.domain.entities import Balance, Movement
+from beront.modules.inventory.domain.entities import Balance, Movement, StockLabel
 from beront.shared.infrastructure.pg_call import require_record
 
 
 def to_balance(row):
     return Balance(
         UUID(row["id"]), UUID(row["target_id"]), row["kind"], Decimal(row["amount"]), row["version"]
+    )
+
+
+def to_label(row):
+    return StockLabel(
+        UUID(row["product_id"]) if row["product_id"] else None,
+        row["product_name"] or "",
+        row["brand_name"] or "",
+        Decimal(row["volume_ml"]) if row["volume_ml"] is not None else None,
     )
 
 
@@ -57,10 +66,12 @@ class SqlStockRepository:
     def add_movement(self, movement, balance_id):
         self.pg.call("inventory_movement_add", {**vars(movement), "balance_id": balance_id})
 
-    def balances(self, page, page_size):
-        result = self.pg.call("inventory_balances", {"page": page, "page_size": page_size})
-        return [to_balance(row) for row in result["items"]], result["total"]
+    def balances(self, page, page_size, kind=None, q=""):
+        result = self.pg.call(
+            "inventory_balances", {"page": page, "page_size": page_size, "kind": kind, "q": q}
+        )
+        return [(to_balance(row), to_label(row)) for row in result["items"]], result["total"]
 
     def movements(self, page, page_size):
         result = self.pg.call("inventory_movements", {"page": page, "page_size": page_size})
-        return [to_movement(row) for row in result["items"]], result["total"]
+        return [(to_movement(row), to_label(row)) for row in result["items"]], result["total"]

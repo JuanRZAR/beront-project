@@ -3,7 +3,6 @@ import { translate, money, type Locale } from "../../shared/i18n";
 import type { Variant } from "../../shared/http/contracts";
 import { mediaUrl } from "../../shared/http/serialization";
 import { toast } from "../../shared/components/toast";
-import { harmonizePhotos } from "../../shared/components/photos";
 const locale: Locale = document.documentElement.lang === "en" ? "en" : "es",
   t = translate(locale);
 const data = document.getElementById("product-data")?.textContent;
@@ -19,7 +18,7 @@ if (data) {
   document.querySelectorAll<HTMLButtonElement>("[data-variant]").forEach((el) =>
     el.addEventListener("click", () => {
       current = variants.find((v) => v.id === el.dataset.variant);
-      if (!current || !button) return;
+      if (!current) return;
       document
         .querySelectorAll("[data-variant]")
         .forEach((node) =>
@@ -30,10 +29,12 @@ if (data) {
       document.getElementById("variant-status")!.textContent = t(
         current.available ? "available" : "soldOut",
       );
-      button.disabled = !current.available;
-      button.querySelector("span")!.textContent = t(
-        current.available ? "addCart" : "soldOut",
-      );
+      if (button) {
+        button.disabled = !current.available;
+        button.querySelector("span")!.textContent = t(
+          current.available ? "addCart" : "soldOut",
+        );
+      }
     }),
   );
   document
@@ -81,4 +82,3 @@ if (data) {
     }),
   );
 }
-harmonizePhotos();

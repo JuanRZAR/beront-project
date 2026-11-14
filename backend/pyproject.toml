@@ -19,6 +19,9 @@ dependencies = [
   "python-dotenv>=1.1,<2",
 ]
 
+[project.scripts]
+beront = "beront.cli:main"
+
 [dependency-groups]
 dev = ["pytest>=8.3,<10", "pytest-cov>=6,<8", "ruff>=0.11,<1", "pip-audit>=2.9,<3"]
 

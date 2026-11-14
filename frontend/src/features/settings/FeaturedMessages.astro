@@ -1,0 +1,157 @@
+---
+import { translate, type Locale } from "../../shared/i18n";
+import "../../shared/styles/home.css";
+interface Props {
+  locale: Locale;
+}
+const { locale } = Astro.props;
+const t = translate(locale);
+const fields = [
+  ["eyebrow", "homeEyebrow"],
+  ["title", "homeTitle"],
+  ["emphasis", "homeEmphasis"],
+  ["body", "homeBody"],
+  ["primary_label", "homePrimaryLabel"],
+  ["secondary_label", "homeSecondaryLabel"],
+];
+const destinations = [
+  ["/catalog/decants", "decants"],
+  ["/catalog/full-bottles", "bottles"],
+  ["/orders", "myOrder"],
+  ["/checkout", "cart"],
+];
+---
+
+<section id="panel-home" role="tabpanel" aria-labelledby="tab-home" hidden>
+  <div class="commerce-config-grid">
+    <section class="commerce-config-panel">
+      <h2>{t("homeMessages")}</h2>
+      <button
+        type="button"
+        class="commerce-button secondary"
+        id="home-message-new"
+      >
+        {t("homeNew")}
+      </button>
+      <ul class="commerce-rows" id="home-message-list"></ul>
+    </section>
+    <form class="commerce-config-panel" id="home-message-form">
+      <h2>{t("homeMessage")}</h2>
+      <div class="home-message-languages">
+        {(["es", "en"] as const).map((language) => (
+          <fieldset>
+            <legend>
+              {t(language === "es" ? "homeContentEs" : "homeContentEn")}
+            </legend>
+            {fields.map(([field, key]) => (
+              <label class="commerce-field">
+                <span>{t(key!)}</span>
+                {field === "body" ? (
+                  <textarea
+                    name={`${language}_${field}`}
+                    required
+                    maxlength="1000"
+                    rows="3"
+                  />
+                ) : (
+                  <input
+                    name={`${language}_${field}`}
+                    required={!["emphasis", "secondary_label"].includes(field!)}
+                    maxlength={field!.includes("label") ? 80 : 180}
+                  />
+                )}
+              </label>
+            ))}
+          </fieldset>
+        ))}
+      </div>
+      <label class="commerce-field">
+        <span>{t("homePrimaryLink")}</span>
+        <input
+          name="primary_path"
+          required
+          maxlength="250"
+          list="home-destinations"
+          value="/catalog/decants"
+        />
+      </label>
+      <label class="commerce-field">
+        <span>{t("homeSecondaryLink")}</span>
+        <input name="secondary_path" maxlength="250" list="home-destinations" />
+      </label>
+      <datalist id="home-destinations">
+        {destinations.map(([path, key]) => (
+          <option value={path}>{t(key!)}</option>
+        ))}
+      </datalist>
+      <p class="commerce-note">{t("homeLinkHint")}</p>
+      <div class="home-message-languages">
+        <label class="commerce-field">
+          <span>{t("position")}</span>
+          <input
+            name="position"
+            type="number"
+            min="0"
+            max="1000"
+            value="0"
+            required
+          />
+        </label>
+        <label class="commerce-field">
+          <span>{t("homeStats")}</span>
+          <select name="stats_kind">
+            <option value="none">{t("homeNoStats")}</option>
+            <option value="decant">{t("decants")}</option>
+            <option value="full_bottle">{t("bottles")}</option>
+          </select>
+        </label>
+        <label class="commerce-field">
+          <span>{t("homeAppearance")}</span>
+          <select name="icon">
+            <option value="bottle">{t("bottles")}</option>
+            <option value="truck">{t("homeShipping")}</option>
+            <option value="whatsapp">{t("homePayment")}</option>
+            <option value="tag">{t("homePromotion")}</option>
+          </select>
+        </label>
+        <label class="commerce-choice">
+          <input name="active" type="checkbox" />
+          {t("active")}
+        </label>
+        <label class="commerce-field">
+          <span>{t("homeStarts")}</span>
+          <input name="starts_at" type="datetime-local" />
+        </label>
+        <label class="commerce-field">
+          <span>{t("homeEnds")}</span>
+          <input name="ends_at" type="datetime-local" />
+        </label>
+      </div>
+      <p class="commerce-note">{t("homeDates")}</p>
+      <fieldset class="home-message-photos">
+        <legend>{t("homeLibrary")}</legend>
+        <p class="commerce-note">{t("homeImageHint")}</p>
+        <div id="home-selected-images" class="home-selected-images"></div>
+        <label class="commerce-field">
+          <span>{t("homeLibrarySearch")}</span>
+          <input type="search" id="home-image-search" maxlength="120" />
+        </label>
+        <div class="home-media-options" id="home-media-options"></div>
+        <div class="home-library-paging">
+          <button type="button" class="text-button" id="home-library-prev">
+            {t("previous")}
+          </button>
+          <span id="home-library-page"></span>
+          <button type="button" class="text-button" id="home-library-next">
+            {t("next")}
+          </button>
+        </div>
+      </fieldset>
+      <p id="home-message-status" role="status"></p>
+      <button type="submit" class="commerce-button">
+        {t("save")}
+      </button>
+      <p class="notice" data-form-error role="alert" tabindex="-1" hidden></p>
+    </form>
+  </div>
+</section>

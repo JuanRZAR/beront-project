@@ -27,6 +27,30 @@ export interface Brand {
   version?: number;
   category_id?: string;
 }
+export interface FeaturedText {
+  eyebrow: string;
+  title: string;
+  emphasis: string;
+  body: string;
+  primary_label: string;
+  secondary_label: string;
+}
+export interface FeaturedMessage {
+  id: string;
+  slug: string;
+  content: Record<"es" | "en", FeaturedText>;
+  primary_path: string;
+  secondary_path: string;
+  icon: "bottle" | "truck" | "whatsapp" | "tag";
+  stats_kind: "none" | "decant" | "full_bottle";
+  position: number;
+  active: boolean;
+  starts_at: string | null;
+  ends_at: string | null;
+  version: number;
+  image_ids: string[];
+  images: Pick<MediaAsset, "id" | "url" | "name">[];
+}
 export interface Variant {
   id: string;
   kind: "decant" | "full_bottle";
@@ -53,6 +77,9 @@ export interface Product {
   brand: Brand;
   audience: string;
   classifications: string[];
+  accords: string[];
+  usages: string[];
+  profiles: string[];
   description: string;
   description_locale: "es" | "en";
   variants: Variant[];
@@ -67,21 +94,32 @@ export interface Product {
   description_es?: string;
   description_en?: string;
 }
-export interface ProductOptions {
-  accords: string[];
-  usages: string[];
-  profiles: string[];
-}
 export interface Facets {
   brands: Brand[];
   volumes_ml: string[];
   classifications: string[];
   audiences: string[];
+  accords: string[];
+  usages: string[];
+  profiles: string[];
   kinds: string[];
+  definitions: Record<DefinitionResource, OptionRow[]>;
 }
+export type DefinitionResource =
+  | "categories"
+  | "audiences"
+  | "presentations"
+  | "accords"
+  | "usages"
+  | "profiles";
 export interface CartItem {
   variant_id: string;
   quantity: number;
+}
+export interface QuoteOption {
+  variant_id: string;
+  volume_ml: string;
+  unit_price: string;
 }
 export interface QuoteLine extends CartItem {
   brand_name: string;
@@ -90,6 +128,9 @@ export interface QuoteLine extends CartItem {
   volume_ml: string;
   unit_price: string;
   line_total: string;
+  product_slug?: string;
+  image_url?: string | null;
+  options?: QuoteOption[];
 }
 export interface Quote {
   currency: "USD";
@@ -98,7 +139,13 @@ export interface Quote {
   whatsapp_url: string | null;
   configuration_error: string | null;
 }
-export interface Balance {
+export interface StockLabel {
+  product_id: string | null;
+  product_name: string;
+  brand_name: string;
+  volume_ml: string | null;
+}
+export interface Balance extends StockLabel {
   id: string;
   target_id: string;
   kind: Variant["kind"];
@@ -106,7 +153,7 @@ export interface Balance {
   version: number;
   unit: "ml" | "units";
 }
-export interface Movement {
+export interface Movement extends StockLabel {
   id: string;
   kind: Variant["kind"];
   target_id: string;

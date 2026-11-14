@@ -6,10 +6,6 @@ import Pagination from "../../../shared/components/Pagination.astro";
 import { isLocale, translate, number } from "../../../shared/i18n";
 import { serverGet } from "../../../shared/http/server";
 import { errorMessage } from "../../../shared/http/errors";
-import {
-  catalogLabels,
-  type ProductLabel,
-} from "../../../features/admin/catalog-index";
 import type { Balance, Movement } from "../../../shared/http/contracts";
 const locale = Astro.params.locale;
 if (!isLocale(locale)) return new Response(null, { status: 404 });
@@ -29,46 +25,32 @@ const q = (Astro.url.searchParams.get("q") ?? "").slice(0, 120),
     ),
   ),
   size = 24;
-let balances: Balance[] = [],
-  movements: Movement[] = [],
-  labels = new Map<string, ProductLabel>(),
+let rows: (Balance | Movement)[] = [],
   error = "",
   total = 0;
 try {
-  labels = await catalogLabels(cookie);
-  if (kind === "movements") {
-    const result = await serverGet<Movement[]>(
-      "/api/v1/admin/inventory/movements?page=" + page + "&page_size=" + size,
-      cookie,
-    );
-    movements = result.data;
-    total = result.meta?.total ?? movements.length;
-  } else {
-    let part = 1,
-      all: Balance[] = [];
-    for (;;) {
-      const result = await serverGet<Balance[]>(
-        "/api/v1/admin/inventory?page_size=48&page=" + part,
-        cookie,
-      );
-      all = all.concat(result.data);
-      if (!result.meta || part * 48 >= result.meta.total) break;
-      part++;
-    }
-    all = all.filter(
-      (balance) =>
-        balance.kind === kind &&
-        (!q ||
-          (labels.get(balance.target_id)?.name ?? "")
-            .toLocaleLowerCase()
-            .includes(q.toLocaleLowerCase())),
-    );
-    total = all.length;
-    balances = all.slice((page - 1) * size, page * size);
+  const params = new URLSearchParams({
+    page: String(page),
+    page_size: String(size),
+  });
+  if (kind !== "movements") {
+    params.set("kind", kind);
+    if (q) params.set("q", q);
   }
+  const result = await serverGet<(Balance | Movement)[]>(
+    "/api/v1/admin/inventory" +
+      (kind === "movements" ? "/movements" : "") +
+      "?" +
+      params,
+    cookie,
+  );
+  rows = result.data;
+  total = result.meta?.total ?? rows.length;
 } catch (err) {
   error = errorMessage(err, locale);
 }
+const productName = (item: Balance | Movement) =>
+  item.product_name || t("productUnavailable");
 const canAdjust = Astro.locals.user?.permissions.includes("inventory:adjust");
 function kindUrl(value: string) {
   return `/${locale}/admin/inventory?kind=${value}`;
@@ -163,12 +145,18 @@ const date = new Intl.DateTimeFormat(locale === "es" ? "es-EC" : "en-US", {
               </thead>
               <tbody>
                 {kind === "movements"
-                  ? movements.map((item) => (
+                  ? (rows as Movement[]).map((item) => (
                       <tr>
                         <td>{date.format(new Date(item.created_at))}</td>
                         <td data-label={t("product")}>
-                          {labels.get(item.target_id)?.name ??
-                            t("productUnavailable")}
+                          {productName(item)}
+                          <br />
+                          <span class="hint">
+                            {item.brand_name}
+                            {item.volume_ml
+                              ? " · " + number(item.volume_ml) + " ml"
+                              : ""}
+                          </span>
                         </td>
                         <td data-label={t("movement")}>
                           {number(item.delta)}{" "}
@@ -177,17 +165,16 @@ const date = new Intl.DateTimeFormat(locale === "es" ? "es-EC" : "en-US", {
                         <td data-label={t("reason")}>{item.reason}</td>
                       </tr>
                     ))
-                  : balances.map((item) => {
-                      const label = labels.get(item.target_id);
+                  : (rows as Balance[]).map((item) => {
                       return (
                         <tr>
                           <td>
-                            {label?.name ?? t("productUnavailable")}
+                            {productName(item)}
                             <br />
                             <span class="hint">
-                              {label?.brand}
-                              {label?.volume
-                                ? " · " + number(label.volume) + " ml"
+                              {item.brand_name}
+                              {item.volume_ml
+                                ? " · " + number(item.volume_ml) + " ml"
                                 : ""}
                             </span>
                           </td>
@@ -201,16 +188,18 @@ const date = new Intl.DateTimeFormat(locale === "es" ? "es-EC" : "en-US", {
                             <span
                               class:list={[
                                 "status",
-                                { muted: !label?.available },
+                                { muted: Number(item.amount) <= 0 },
                               ]}
                             >
                               {t(
-                                label?.available ? "available" : "unavailable",
+                                Number(item.amount) > 0
+                                  ? "inStock"
+                                  : "outOfStock",
                               )}
                             </span>
                           </td>
                           <td>
-                            {canAdjust && label && (
+                            {canAdjust && (
                               <button
                                 class="text-button"
                                 data-adjust-stock
@@ -218,7 +207,12 @@ const date = new Intl.DateTimeFormat(locale === "es" ? "es-EC" : "en-US", {
                                 data-kind={item.kind}
                                 data-amount={item.amount}
                                 data-version={item.version}
-                                data-name={label.name}
+                                data-name={
+                                  item.product_name +
+                                  (item.volume_ml
+                                    ? " · " + number(item.volume_ml) + " ml"
+                                    : "")
+                                }
                               >
                                 {t("adjust")}
                               </button>
@@ -227,9 +221,7 @@ const date = new Intl.DateTimeFormat(locale === "es" ? "es-EC" : "en-US", {
                         </tr>
                       );
                     })}
-                {!(kind === "movements"
-                  ? movements.length
-                  : balances.length) && (
+                {!rows.length && (
                   <tr>
                     <td colspan="4">
                       {t(kind === "movements" ? "noMovements" : "noStock")}

@@ -36,9 +36,18 @@ class LocalImageStorage:
                         )
                     image.verify()
                 with Image.open(io.BytesIO(payload)) as image:
-                    normalized = ImageOps.exif_transpose(image).convert("RGB")
+                    alpha = "A" in image.getbands() or "transparency" in image.info
+                    normalized = ImageOps.exif_transpose(image).convert("RGBA" if alpha else "RGB")
                     normalized.info.clear()
-                    normalized.save(temporary, "WEBP", quality=88, exif=b"", icc_profile=b"")
+                    normalized.save(
+                        temporary,
+                        "WEBP",
+                        quality=88,
+                        lossless=alpha,
+                        exact=alpha,
+                        exif=b"",
+                        icc_profile=b"",
+                    )
             temporary.replace(self.uploads / filename)
             return filename
         except (
