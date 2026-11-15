@@ -3,6 +3,8 @@
 Estado: arquitectura aprobada por el propietario el 23 de octubre de 2026.
 Entorno: ejecución local. Despliegue fuera de alcance.
 La aprobación arquitectónica no aprueba los prototipos visuales.
+Conexión vigente en este equipo: `beront-bd`, PostgreSQL de Docker en `127.0.0.1:5432`,
+para ejecución y migraciones, según `backend/.env`.
 
 ## Semilla canónica del catálogo final, 14 de noviembre de 2026
 
@@ -24,6 +26,18 @@ semilla v2. El almacenamiento existente conserva los bytes al normalizar estas i
 genera sus URL `/media/` propias. Las pruebas comparan las 133 respuestas con las huellas
 de la semilla e incluyen repetición sin sobrescribir cambios administrativos ni inventario.
 Los nuevos saldos empiezan en cero. No se incorporan credenciales a la semilla.
+
+## Infraestructura local Docker autorizada el 14 de noviembre de 2026
+
+Por solicitud expresa del propietario, PostgreSQL 18 y el SMTP de captura Mailpit se
+ejecutan en contenedores Docker locales con volúmenes persistentes dedicados y puertos
+publicados únicamente en loopback. Flask y Astro/Bun se ejecutan en el equipo anfitrión;
+se conservan el stack, las capas y el acceso a PostgreSQL mediante funciones.
+
+La instalación nueva usa `beront-bd` y roles separados `beront_migrator` y `beront_app`.
+Los `.env` locales se mantienen fuera de Git; los comandos y puertos vigentes están
+en `docs/LOCAL.md`. Esta preparación utiliza Docker CLI y no añade archivos Compose
+ni ubicaciones nuevas al repositorio.
 
 ## Auditoría y optimización local, 13 de noviembre de 2026
 
@@ -562,7 +576,7 @@ Búsqueda PostgreSQL parametrizada y paginada; ampliar solo tras mediciones y ap
 
 ```text
 /
-├── AGENTS.md, .gitignore, README.md, project_memory.md
+├── AGENTS.md, CLAUDE.md, .gitignore, README.md, project_memory.md
 ├── docs/
 │   ├── ARCHITECTURE.md                 # Arquitectura aprobada
 │   ├── LOCAL.md                        # Configuración y verificación local

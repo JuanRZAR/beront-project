@@ -25,6 +25,7 @@
   --muted: color-mix(in srgb, var(--black) 65%, var(--white));
   --serif: "Cormorant Garamond", Georgia, serif;
   --sans: "Source Sans 3", Arial, sans-serif;
+  --main-menu-clearance: calc(6rem + env(safe-area-inset-bottom, 0px));
 }
 * {
   box-sizing: border-box;
@@ -40,8 +41,8 @@ body {
   font-size: 1rem;
   line-height: 1.5;
 }
-.has-main-menu {
-  padding-bottom: calc(6rem + env(safe-area-inset-bottom, 0px));
+.has-main-menu:not(.storefront) {
+  padding-bottom: var(--main-menu-clearance);
 }
 button,
 input,
@@ -2065,7 +2066,7 @@ summary {
 }
 .storefront .site-footer {
   margin-top: 64px;
-  padding: 52px 0 90px;
+  padding: 52px 0 var(--main-menu-clearance);
   border-top: 0;
 }
 .storefront .site-footer .footer-top {

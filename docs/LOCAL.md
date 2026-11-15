@@ -1,15 +1,103 @@
 # Ejecución y verificación local
 
-## Base local y semilla vigente, 14 de noviembre de 2026
+## Base local de Docker y semilla vigente, 14 de noviembre de 2026
 
-`backend/.env` apunta a `beront-bd2` tanto para ejecución como para migraciones. La base nueva
-está migrada a `de252c02c932` y contiene la semilla canónica de 127 perfumes y 133 fotos sin
-fondo, además de seis mensajes del Home. Se conserva el administrador local con las mismas
-credenciales; los saldos empiezan en cero. No se modifica `beront-bd`.
+`backend/.env` apunta a `beront-bd`, PostgreSQL de Docker en `127.0.0.1:5432`, tanto para
+ejecución como para migraciones. El propietario solicita resetearla después de vaciar
+`backend/var/uploads/` para cargar las imágenes reales de la semilla vigente. Se recrea el
+esquema mediante las migraciones Alembic existentes hasta `de252c02c932` y se importa la semilla
+canónica de 127 perfumes, 425 presentaciones y 133 fotos sin fondo, además de seis mensajes
+del Home. Se conserva el administrador local con las mismas credenciales, sin sesiones;
+los saldos empiezan en cero. Se restituyen los permisos de funciones de `beront_app`.
 
-Si el backend estaba abierto antes del cambio de `.env`, su proceso sigue conectado a la
-base anterior hasta que el propietario lo detenga con Ctrl+C y ejecute otra vez
-`uv run beront run` desde `backend/`. El frontend de 4322 puede continuar abierto.
+El restablecimiento conserva el contenedor, los roles y las conexiones de `.env`.
+Los servidores del propietario no se reinician.
+## Catálogo cargado y corrección del footer, 14 de noviembre de 2026
+
+Después de que el propietario creara el administrador, se ejecutaron
+`uv run --locked beront importar-catalogo` y `uv run --locked beront inicializar-home`.
+La base Docker contiene 130 perfumes, 400 presentaciones y 132 fotografías importadas;
+se crearon seis mensajes del Home, cinco activos. Los saldos nuevos permanecen en cero
+y se conserva el perfil de solicitudes sin exigir stock. Las 132 URLs de imágenes se
+verificaron con HTTP 200 y contenido WebP válido en el backend activo.
+
+Se cargaron las fotografías originales disponibles en la semilla. Delina Eau de Parfum
+no tiene fotografía en esa fuente. Los recortes Inkscape R02 históricos no están presentes
+en este equipo y no se ejecutó su importación.
+
+El espacio blanco bajo el footer procedía del padding del body para el menú flotante.
+`global.css` centraliza esa reserva en `--main-menu-clearance` y la aplica dentro del
+footer público; la administración conserva su reserva inferior. El menú sigue visible
+y el contenido del footer queda por encima de él. Los servidores del propietario se conservan.
+
+Verificación: 270 comprobaciones en Chromium, Firefox y WebKit, con Inicio, Decants y
+Perfumes completos en 15 anchos de 320 a 2560 px y texto normal/ampliado. El footer termina
+con el documento, sin desbordamiento horizontal ni contenido oculto por el menú; su manejo
+por teclado conserva el foco. Se revisaron capturas de escritorio y móvil, además de confirmar
+la corrección en el frontend habitual 4322. Prettier correcto. El frontend temporal y sus
+capturas/registros se eliminan al terminar.
+
+## Entorno Docker preparado el 14 de noviembre de 2026
+
+Por solicitud del propietario se crea una instalación local nueva, independiente de las
+bases históricas descritas más abajo. `backend/.env` y `frontend/.env` están configurados y
+excluidos de Git; los secretos aleatorios permanecen únicamente en la configuración local.
+
+| Servicio | Contenedor | Dirección local | Persistencia |
+|---|---|---|---|
+| PostgreSQL 18 | `beront-postgres` | `127.0.0.1:5432`, base `beront-bd` | Volumen `beront-postgres-data` |
+| Mailpit SMTP | `beront-mailpit` | `127.0.0.1:1025` | Volumen `beront-mailpit-data` |
+| Mailpit web | `beront-mailpit` | `http://localhost:8025` | Mismo volumen |
+
+Las cuatro migraciones existentes se revisaron y aplicaron hasta `de252c02c932`;
+`alembic check` no detectó diferencias con los modelos. `beront_migrator` es el propietario
+del esquema y `beront_app` dispone de ejecución de funciones, sin superusuario, DDL ni acceso
+directo a tablas. La base se prepara vacía: el administrador lo elige el propietario y el
+catálogo se importa después mediante los comandos existentes.
+
+Se conservan `CART_REQUIRES_STOCK=false`, `PUBLIC_CATALOG_ONLY=true` y
+`PUBLIC_CART_ENABLED=true`. El origen autorizado es `http://localhost:4322` y el proxy usa
+`http://127.0.0.1:5000`. Mailpit utiliza SMTP sin TLS ni autenticación, limitado a loopback,
+con el remitente de captura `beront@localhost.test`; los mensajes se consultan en su web.
+
+El contenedor que estaba activo, `deploy-dev-db-1`, se detuvo por solicitud expresa,
+conservando sus datos. Los dos contenedores nuevos permanecen activos. Para iniciarlos
+en otra sesión, con el motor Docker disponible:
+
+```powershell
+docker start beront-postgres beront-mailpit
+```
+
+Desde la raíz del proyecto, en una terminal para el backend:
+
+```powershell
+Set-Location .\backend
+uv run --locked beront run --host 127.0.0.1 --port 5000
+```
+
+Desde la raíz, en otra terminal para el frontend:
+
+```powershell
+Set-Location .\frontend
+bun run dev --port 4322
+```
+
+Abrir `http://localhost:4322/es/`. Para detener estos servicios de infraestructura:
+
+```powershell
+docker stop beront-postgres beront-mailpit
+```
+
+Se instalaron las dependencias con `uv sync --locked` y `bun install --frozen-lockfile`.
+Bun se actualizó de 1.3.14 a la versión estable 1.4.4 para leer el formato actual de
+`bun.lock`; ambos archivos de bloqueo se conservan. Python usa la versión 3.14 fijada.
+Los registros anteriores de procesos, datos y credenciales corresponden a otros momentos.
+
+Verificación de esta preparación: API pública HTTP 200, sesión sin autenticar HTTP 401,
+restricciones del rol de ejecución confirmadas, SMTP `NOOP` 250 y web de Mailpit HTTP 200.
+Home, Decants, Perfumes completos y el proxy de la API respondieron HTTP 200 mediante
+servidores temporales propios, detenidos al terminar. No se enviaron correos ni se crearon
+datos de negocio; los archivos de comprobación temporales se eliminaron.
 
 ## Auditoría y benchmark, 13 de noviembre de 2026
 

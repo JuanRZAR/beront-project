@@ -1,5 +1,19 @@
 # Memoria del proyecto BÉRONT
 
+## Restablecimiento de la base Docker — 14 de noviembre de 2026
+
+La conexión vigente del equipo es `beront-bd` en PostgreSQL de Docker (`127.0.0.1:5432`),
+con los roles `beront_app` y `beront_migrator` de `backend/.env`. Por solicitud del propietario,
+tras borrar las imágenes de `uploads`, se restablece el esquema con downgrade a base y upgrade
+a head de las migraciones Alembic existentes, dentro de una transacción. Se conserva únicamente
+el administrador con sus credenciales actuales y se restituyen los permisos de funciones del
+rol de ejecución. Se vuelve a cargar la semilla v2 y el Home; se conservan el contenedor,
+los roles, `.env` y los servidores del propietario. Las referencias a `beront-bd2` siguientes
+describen una instalación anterior y no la conexión vigente de este equipo.
+Verificado: 127 perfumes, 43 marcas, 425 presentaciones, 133 respuestas de medios con SHA-256
+idéntico a la semilla y seis mensajes del Home (cinco públicos). Inventario cero, sin pedidos,
+movimientos ni sesiones. `alembic check` no detecta diferencias con los modelos; staging vacío.
+
 ## Semilla canónica del catálogo final — 14 de noviembre de 2026
 
 El propietario establece como única fuente los 127 perfumes de Decants y las imágenes de sus
@@ -35,6 +49,59 @@ públicos CSS Design Awards y campaña Dior 2026 documentadas en design/reviews/
 textos ampliados, reducción de movimiento, teclado y simulación de dispositivos. Pendiente
 de elección/aprobación; no integrar en frontend hasta recibir instrucción explícita.
 El comparador se abre desde archivo en Chrome y no depende del servidor temporal de revisión.
+## Semilla e imágenes cargadas; footer corregido — 14 de noviembre de 2026
+
+El propietario solicita eliminar la franja blanca bajo el footer e importar la semilla
+porque faltan las imágenes. Crea el administrador desde su terminal; después se ejecutan
+los importadores existentes de catálogo y Home. Resultado: 130 perfumes, 400 presentaciones,
+132 imágenes nuevas y seis mensajes del Home, cinco activos. Los saldos nuevos quedan en
+cero y se conserva el carrito abierto. Las 132 imágenes públicas responden HTTP 200 como WebP.
+
+Esta instalación usa las fotos originales de `backend/semillas/catalogo/imagenes`.
+Delina Eau de Parfum sigue sin foto en esa fuente; los recortes R02 no están presentes
+en el equipo y no se aplicaron. Los registros de transparencia anteriores corresponden
+a otra instalación y se conservan como histórico.
+
+La reserva inferior del menú flotante se traslada del body público al interior del footer
+mediante el token compartido `--main-menu-clearance` de `global.css`. Se conserva el
+espaciado de administración, el diseño aprobado y el acceso al menú sin tapar el footer.
+Las comprobaciones usan el backend del propietario y un frontend temporal en 4323;
+los procesos habituales 4322 y 5000 permanecen intactos.
+
+Verificación completada: 270 comprobaciones de footer y menú en Chromium, Firefox y
+WebKit, 15 anchos entre 320 y 2560 px, texto normal/ampliado y navegación por teclado.
+Se inspeccionan capturas de escritorio y móvil y se confirma el ajuste en 4322. Prettier
+correcto. El frontend temporal se detiene y se eliminan sus capturas y registros.
+
+## Preparación local con Docker y Mailpit — 14 de noviembre de 2026
+
+El propietario solicita crear los `.env` de backend y frontend, preparar una base nueva
+en Docker, usar Mailpit local y detener los contenedores que estaban activos. Se detiene
+`deploy-dev-db-1`, conservando su contenedor y volumen. Se crean `beront-postgres`
+(PostgreSQL 18, `127.0.0.1:5432`) y `beront-mailpit` (SMTP 1025 y web 8025, solo loopback),
+con volúmenes persistentes propios; estos dos servicios quedan activos.
+
+`beront-bd` se instala desde vacío con las cuatro migraciones existentes revisadas,
+hasta `de252c02c932`; `alembic check` no encuentra diferencias. Se separan los roles
+`beront_migrator` y `beront_app`: la aplicación ejecuta funciones SQL sin privilegios
+de superusuario, creación de objetos ni acceso directo a tablas. Los secretos nuevos
+permanecen en la configuración local y no se registran en documentación.
+
+Ambos `.env` están excluidos de Git. Se conserva el frontend en `localhost:4322`, la API
+en `127.0.0.1:5000`, el catálogo público limitado y el carrito abierto sin exigir saldo.
+Mailpit usa el remitente local de captura `beront@localhost.test`. La base nueva queda
+sin administrador, productos ni existencias: esta preparación no importa datos comerciales.
+Los comandos de arranque y la operación de Docker se documentan al inicio de `docs/LOCAL.md`.
+
+Se instalan las dependencias de ambos locks sin modificarlos. Bun se actualiza de 1.3.14
+a la versión estable 1.4.4 porque la anterior no reconoce el formato de `bun.lock`.
+La configuración histórica y los datos comerciales descritos en otras fechas no se
+trasladan automáticamente a esta instalación.
+
+Verificados los permisos restringidos, las rutas públicas de API y las tres páginas
+del catálogo con su proxy; la sesión anónima devuelve 401. Mailpit responde por web y
+SMTP sin enviar mensajes. Los servidores y archivos de verificación temporales se
+eliminan; quedan únicamente los dos contenedores de infraestructura solicitados.
 
 ## Auditoría funcional, rendimiento y dependencias — 13 de noviembre de 2026
 
