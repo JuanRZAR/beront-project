@@ -6,32 +6,28 @@ if (root) {
   const dots = [...root.querySelectorAll<HTMLButtonElement>("[data-home-dot]")];
   const toggle = root.querySelector<HTMLButtonElement>("[data-home-toggle]");
   let index = 0,
-    playing = !reducedMotion(),
+    playing = true,
     hovering = false,
     timer = 0;
   const schedule = () => {
     window.clearTimeout(timer);
     root.removeAttribute("data-running");
     if (!toggle) return;
-    toggle.disabled = reducedMotion();
+    const reduced = reducedMotion(),
+      autoplay = playing && !reduced;
+    toggle.disabled = reduced;
     toggle.setAttribute(
       "aria-label",
-      (playing ? root.dataset.pauseLabel : root.dataset.playLabel)!,
+      (autoplay ? root.dataset.pauseLabel : root.dataset.playLabel)!,
     );
-    toggle.setAttribute("aria-pressed", String(!playing));
-    toggle.querySelector<HTMLElement>("[data-home-pause]")!.hidden = !playing;
-    toggle.querySelector<HTMLElement>("[data-home-play]")!.hidden = playing;
-    root.toggleAttribute("data-playing", playing && !reducedMotion());
+    toggle.setAttribute("aria-pressed", String(!autoplay));
+    toggle.querySelector<HTMLElement>("[data-home-pause]")!.hidden = !autoplay;
+    toggle.querySelector<HTMLElement>("[data-home-play]")!.hidden = autoplay;
+    root.toggleAttribute("data-playing", autoplay);
     root
       .querySelector("[data-home-slides]")
-      ?.setAttribute("aria-live", playing ? "off" : "polite");
-    if (
-      playing &&
-      !hovering &&
-      !reducedMotion() &&
-      !document.hidden &&
-      slides.length > 1
-    ) {
+      ?.setAttribute("aria-live", autoplay ? "off" : "polite");
+    if (autoplay && !hovering && !document.hidden && slides.length > 1) {
       void root.offsetWidth;
       root.setAttribute("data-running", "");
       timer = window.setTimeout(() => show(index + 1), 7000);
@@ -95,14 +91,6 @@ if (root) {
     schedule();
   });
   document.addEventListener("visibilitychange", schedule);
-  const motion = () => {
-    if (reducedMotion()) playing = false;
-    schedule();
-  };
-  window.addEventListener("beront:a11y", motion);
-  matchMedia("(prefers-reduced-motion: reduce)").addEventListener(
-    "change",
-    motion,
-  );
+  window.addEventListener("beront:a11y", schedule);
   schedule();
 }

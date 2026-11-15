@@ -68,16 +68,9 @@ panel
   ?.querySelector<HTMLInputElement>("[data-motion]")
   ?.addEventListener("change", (event) => {
     const requested = (event.target as HTMLInputElement).checked;
-    const system = matchMedia("(prefers-reduced-motion: reduce)").matches;
     save({
       ...read(),
-      motion: requested
-        ? system
-          ? undefined
-          : "reduce"
-        : system
-          ? "full"
-          : undefined,
+      motion: requested ? "reduce" : "full",
     });
   });
 panel

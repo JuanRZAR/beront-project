@@ -1,5 +1,23 @@
 # Memoria del proyecto BÉRONT
 
+## Animaciones independientes del sistema — 14 de noviembre de 2026
+
+El propietario solicita mantener las animaciones aunque el sistema operativo las tenga
+desactivadas. El producto deja de consultar `prefers-reduced-motion` en CSS y TypeScript;
+solo «Reducir animaciones» del panel aplica la reducción. La preferencia explícita se
+conserva en `beront.a11y.v1`, también entre páginas y recargas. Desmarcarla o restablecer
+el panel recupera el movimiento. El Home conserva la elección de pausa manual del usuario
+al cambiar las preferencias y mantiene sus controles de navegación. Se actualizan la
+arquitectura, el registro de autorización y las regresiones de navegador existentes.
+
+Verificado: 24 casos en tres motores y siete anchos, con persistencia, restablecimiento,
+preferencia del sistema, ES/EN y pausa manual. Astro check sin errores, ESLint, 28 pruebas
+unitarias, build y formato de archivos modificados correctos. El formato global detecta
+finales de línea previos en otros archivos. Se utiliza Chromium completo instalado y
+60 segundos para recorridos WebKit; no se prueban dispositivos físicos. Se conservan
+los servidores del propietario (4321/5000); el frontend temporal 4322 y los resultados
+temporales se retiran al terminar. No se modifica la base de datos.
+
 ## Restablecimiento de la base Docker — 14 de noviembre de 2026
 
 La conexión vigente del equipo es `beront-bd` en PostgreSQL de Docker (`127.0.0.1:5432`),

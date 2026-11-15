@@ -143,7 +143,7 @@ test("el carrito conserva controles accesibles y cabe en los rangos de pantalla"
 test("el decant anima el líquido y actualiza su nivel al cambiar ml, respetando movimiento reducido", async ({
   page,
 }) => {
-  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("/es/products/perfume-e2e");
   await page.locator("#add-to-cart").click();
   await expect(page.locator("#cart-total")).toHaveText("$12.50");
@@ -162,7 +162,21 @@ test("el decant anima el líquido y actualiza su nivel al cambiar ml, respetando
         .evaluate((wave) => getComputedStyle(wave).animationName),
     )
     .toBe("wave");
-  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await expect
+    .poll(() =>
+      vial
+        .locator(".wave-front")
+        .evaluate((wave) => getComputedStyle(wave).animationName),
+    )
+    .toBe("wave");
+  await page.keyboard.press("Escape");
+  await page
+    .getByRole("button", { name: "Accesibilidad", exact: true })
+    .click();
+  await page.getByLabel("Reducir animaciones").check();
+  await page.keyboard.press("Escape");
+  await page.locator(".cart-link").click();
   await expect
     .poll(() =>
       vial

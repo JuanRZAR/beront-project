@@ -6,6 +6,17 @@ La aprobación arquitectónica no aprueba los prototipos visuales.
 Conexión vigente en este equipo: `beront-bd`, PostgreSQL de Docker en `127.0.0.1:5432`,
 para ejecución y migraciones, según `backend/.env`.
 
+## Preferencia de animaciones del sitio, 14 de noviembre de 2026
+
+Por solicitud expresa del propietario, las animaciones están activas por defecto aunque
+el sistema operativo indique reducción de movimiento. Solo «Reducir animaciones» en el
+panel de accesibilidad aplica `data-motion="reduce"`; la elección se conserva en
+`beront.a11y.v1`. Desmarcarla o restablecer las preferencias recupera el movimiento.
+CSS y TypeScript comparten esta decisión sin consultar `prefers-reduced-motion`.
+Los controles de pausa y navegación manual del carrusel conservan su funcionamiento.
+Esta decisión sustituye la dependencia del sistema descrita en aprobaciones anteriores;
+no cambia las vistas aprobadas, las capas, el stack ni las dependencias.
+
 ## Semilla canónica del catálogo final, 14 de noviembre de 2026
 
 El propietario declara como única fuente los 127 perfumes de Decants listados desde el

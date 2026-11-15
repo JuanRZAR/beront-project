@@ -1,5 +1,24 @@
 # Aprobaciones de diseño
 
+## Animaciones controladas por accesibilidad — autorizado el 14 de noviembre de 2026
+
+El propietario solicita mantener las animaciones del sitio aunque Windows u otro sistema
+tenga desactivadas sus animaciones. La reducción se activa únicamente desde el panel
+de accesibilidad y se conserva entre páginas y recargas. Desmarcarla o restablecer el
+panel recupera el movimiento; la pausa y la navegación manual del carrusel se conservan.
+Se autoriza este ajuste sobre las vistas vigentes, sin una propuesta visual nueva.
+Sustituye las menciones anteriores al seguimiento de `prefers-reduced-motion` en el producto.
+
+Verificación: 24 casos correctos en Chromium, Firefox y WebKit, con anchos de
+320/360/390/768/1024/1440/1920 px. Se comprueban preferencia del sistema, activación,
+desactivación, restablecimiento, persistencia, ES/EN, transiciones y pausa del carrusel.
+Tipos (102 archivos), ESLint, 28 pruebas unitarias, build y formato de los archivos
+modificados correctos. El chequeo global de formato detecta finales de línea preexistentes
+en otros archivos. Chromium se verifica con el ejecutable completo instalado por faltar
+su headless shell; los recorridos largos de WebKit usan un límite de 60 segundos.
+Pruebas con el backend del propietario y un frontend temporal en 4322, sin escrituras
+de negocio ni reiniciar los servidores habituales. Sin pruebas en dispositivos físicos.
+
 ## Navidad R01 — pendiente de elección, 14 de noviembre de 2026
 
 El propietario solicita tres propuestas: una con nieve y dos fundamentadas en referencias

@@ -326,12 +326,6 @@ html[data-motion="reduce"] .home-page * {
   animation: none;
   transition: none;
 }
-@media (prefers-reduced-motion: reduce) {
-  html:not([data-motion="full"]) .home-page * {
-    animation: none;
-    transition: none;
-  }
-}
 @container home (min-width:600px) {
   .home-shortcut-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));

@@ -1,8 +1,5 @@
 export function reducedMotion() {
-  const mode = document.documentElement.dataset.motion;
-  if (mode === "reduce") return true;
-  if (mode === "full") return false;
-  return matchMedia("(prefers-reduced-motion: reduce)").matches;
+  return document.documentElement.dataset.motion === "reduce";
 }
 export function animateNumber(
   node: HTMLElement,

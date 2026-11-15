@@ -2253,17 +2253,6 @@ html[data-contrast="high"] .storefront .header-band .header-link {
 html[data-contrast="high"] .studio {
   background: var(--black);
 }
-@media (prefers-reduced-motion: reduce) {
-  html:not([data-motion="full"]) {
-    scroll-behavior: auto;
-  }
-  html:not([data-motion="full"]) *,
-  html:not([data-motion="full"]) *::before,
-  html:not([data-motion="full"]) *::after {
-    transition: none !important;
-    animation: none !important;
-  }
-}
 html[data-motion="reduce"] {
   scroll-behavior: auto;
 }

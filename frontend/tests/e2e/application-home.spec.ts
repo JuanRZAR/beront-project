@@ -6,7 +6,12 @@ test.setTimeout(120000);
 test("el Home muestra mensajes reales, enlaces, idiomas y tamaños adaptados", async ({
   page,
 }) => {
-  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.addInitScript(() => {
+    localStorage.setItem(
+      "beront.a11y.v1",
+      JSON.stringify({ motion: "reduce" }),
+    );
+  });
   await page.goto("/es/");
   const slides = page.locator("[data-home-slide]");
   await expect(slides).toHaveCount(5);
@@ -80,9 +85,17 @@ test("el carrusel se pausa y respeta la reducción de movimiento", async ({
   await page.clock.fastForward(7100);
   await expect(slides.nth(2)).toHaveAttribute("data-active", "");
   await page.emulateMedia({ reducedMotion: "reduce" });
+  await expect(page.locator("[data-home-toggle]")).toBeEnabled();
+  const next = slides.nth(3 % (await slides.count()));
+  await page.clock.fastForward(7100);
+  await expect(next).toHaveAttribute("data-active", "");
+  await page
+    .getByRole("button", { name: "Accesibilidad", exact: true })
+    .click();
+  await page.getByLabel("Reducir animaciones").check();
   await expect(page.locator("[data-home-toggle]")).toBeDisabled();
   await page.clock.fastForward(15000);
-  await expect(slides.nth(2)).toHaveAttribute("data-active", "");
+  await expect(next).toHaveAttribute("data-active", "");
 });
 
 test("configuración publica y desactiva mensajes con PNG transparente sin interpretar HTML", async ({
