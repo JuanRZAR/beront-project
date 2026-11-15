@@ -7,7 +7,10 @@ USD, pedidos persistentes con pago por transferencia revisada manualmente o coor
 
 Home integrado el 9 de noviembre de 2026 con carrusel informativo, recortes sin fondo, cinta de
 marcas y accesos rápidos. Los mensajes se administran en Configuración → Inicio y mensajes.
-La base local contiene el catálogo y está migrada a `de252c02c932`. Estado y verificaciones en
+La semilla vigente contiene los 127 perfumes del catálogo final de Decants y sus 133 fotos
+WebP sin fondo, con los nombres, precios y presentaciones actuales. Incluye las imágenes
+necesarias para una instalación nueva; no requiere recursos de `design/` ni una base previa.
+El esquema está migrado a `de252c02c932`. Estado y verificaciones en
 [docs/IMPLEMENTATION.md](docs/IMPLEMENTATION.md); auditoría previa en [docs/AUDITORIA.md](docs/AUDITORIA.md).
 
 ## Documentación
@@ -29,7 +32,6 @@ uv sync --locked
 uv run beront migrate
 uv run beront createsuperuser
 uv run beront importar-catalogo
-uv run beront importar-recortes --manifiesto ../design/assets/inkscape-catalog-r02-manifest.json
 uv run beront inicializar-home
 uv run beront run
 ```
@@ -44,6 +46,11 @@ bun.cmd run dev --port 4322
 Abrir http://localhost:4322/es/ . Configurar `FRONTEND_ORIGIN` con ese origen en `backend/.env`.
 El acceso administrativo está en `/es/admin/login`. La instalación local ya tiene administrador
 y datos; no repetir su creación ni detener los servidores existentes.
+
+`backend/semillas/catalogo/catalogo.json` es la fuente canónica de nombres e imágenes de la
+semilla. `imagenes/` contiene los 133 archivos exactos del catálogo aprobado; la importación
+comprueba sus huellas SHA-256, dimensiones y transparencia. Los nombres de archivo servidos
+en `/media/` se generan en cada instalación, conservando el contenido de las imágenes.
 
 ## Verificación
 

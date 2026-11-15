@@ -9,6 +9,11 @@ from PIL import Image
 from beront.modules.catalog.infrastructure.approved_images import load_approved_images
 
 
+def test_current_seed_rejects_legacy_photo_replacement(tmp_path):
+    with pytest.raises(ValueError, match="ya incluye las fotos sin fondo"):
+        load_approved_images(tmp_path / "manifest.json", {"seed_version": 2}, tmp_path)
+
+
 def test_approved_images_validate_sources_and_reject_changed_files(tmp_path):
     originals, approved = tmp_path / "originals", tmp_path / "approved"
     originals.mkdir()

@@ -4,6 +4,27 @@ Estado: arquitectura aprobada por el propietario el 23 de octubre de 2026.
 Entorno: ejecución local. Despliegue fuera de alcance.
 La aprobación arquitectónica no aprueba los prototipos visuales.
 
+## Semilla canónica del catálogo final, 14 de noviembre de 2026
+
+El propietario declara como única fuente los 127 perfumes de Decants listados desde el
+catálogo final, con sus nombres y fotografías vigentes. Autoriza sustituir la semilla anterior
+y aplicarla en la base local nueva `beront-bd2`. La ubicación continúa siendo
+`backend/semillas/catalogo/{catalogo.json,imagenes/}`; no cambian capas, stack ni esquema.
+
+La versión 2 contiene 127 perfumes, 43 marcas, 425 presentaciones (400 decants y 25 completos,
+nueve presentaciones desactivadas) y 133 fotografías: 127 principales y seis adicionales.
+Se conservan los precios y estados vigentes de sus presentaciones. Las 133 fotos WebP RGBA
+son copias exactas de los archivos servidos en el catálogo aprobado, incluidas las incorporadas
+posteriormente a R02. El manifiesto comprueba SHA-256, tamaño, dimensiones, transparencia y
+correspondencia entre productos y archivos antes de conectar con la base.
+
+Una instalación nueva usa `importar-catalogo` directamente. No necesita los maestros de
+`design/` ni ejecutar `importar-recortes`; el adaptador histórico rechaza su uso sobre la
+semilla v2. El almacenamiento existente conserva los bytes al normalizar estas imágenes y
+genera sus URL `/media/` propias. Las pruebas comparan las 133 respuestas con las huellas
+de la semilla e incluyen repetición sin sobrescribir cambios administrativos ni inventario.
+Los nuevos saldos empiezan en cero. No se incorporan credenciales a la semilla.
+
 ## Auditoría y optimización local, 13 de noviembre de 2026
 
 La consulta de filtros reutiliza sus definiciones dentro de la misma unidad de trabajo y
@@ -602,8 +623,10 @@ No añadir ubicaciones sin aprobación. Los artefactos de gestores/build son ign
 La demostración con datos e imágenes del HTML del propietario se retiró del frontend el
 1 de noviembre de 2026 (`frontend/public/temporal/`, `frontend/src/pages/temporal/`,
 `frontend/src/features/catalog/temporary.ts`, la excepción de middleware y sus pruebas). La
-única fuente de perfumes es la semilla `backend/semillas/catalogo/` (130 perfumes, 132
-fotografías), que se importa con `uv run beront importar-catalogo`.
+única fuente de perfumes es la semilla `backend/semillas/catalogo/`, que se importa con
+`uv run beront importar-catalogo`. Su versión vigente y conteos se definen en el apartado
+«Semilla canónica del catálogo final»; los 130 perfumes y 132 fotografías originales quedan
+como antecedente histórico sustituido.
 
 ## E. Flujo y contratos
 

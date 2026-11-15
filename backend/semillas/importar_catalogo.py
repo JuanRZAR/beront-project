@@ -1,6 +1,7 @@
 """Importa la semilla sin reemplazar productos ni existencias ya registrados."""
 
 import argparse
+import hashlib
 import json
 import re
 from decimal import Decimal
@@ -8,6 +9,7 @@ from pathlib import Path
 from uuid import UUID
 
 from flask.cli import load_dotenv
+from PIL import Image
 
 from beront.app import create_app
 from beront.modules.catalog.application.import_seed import ImportCatalogSeed
@@ -26,7 +28,7 @@ SOURCE = Path(__file__).resolve().parent / "catalogo"
 
 def load_source(root=SOURCE):
     document = json.loads((root / "catalogo.json").read_text(encoding="utf-8"))
-    if document.get("seed_version") != 1:
+    if document.get("seed_version") != 2:
         raise ValueError("Versión de semilla no admitida.")
     SettingsBody.model_validate({"version": 0, **document["store_settings"]})
     for row in document["order_flow"]["statuses"]:
@@ -51,9 +53,24 @@ def load_source(root=SOURCE):
         path = (root / "imagenes" / filename).resolve()
         if path.parent != (root / "imagenes").resolve() or not path.is_file():
             raise ValueError("Falta una fotografía de la semilla.")
+        if filename in filenames:
+            raise ValueError("La semilla contiene fotografías duplicadas.")
+        payload = path.read_bytes()
+        if hashlib.sha256(payload).hexdigest() != row["sha256"]:
+            raise ValueError("La fotografía no coincide con la semilla aprobada: " + filename)
+        if len(payload) != row["size_bytes"]:
+            raise ValueError("El tamaño de la fotografía no coincide con la semilla.")
+        with Image.open(path) as image:
+            if image.format != "WEBP" or image.size != (row["width"], row["height"]):
+                raise ValueError("El formato o las dimensiones de la fotografía no coinciden.")
+            if "A" not in image.getbands() or image.getchannel("A").getextrema()[0] == 255:
+                raise ValueError("La fotografía debe conservar su transparencia.")
         filenames.add(filename)
+    if {path.name for path in (root / "imagenes").iterdir() if path.is_file()} != filenames:
+        raise ValueError("La carpeta de imágenes no coincide con el catálogo de la semilla.")
     brands = {}
     identifiers = set()
+    referenced_images = set()
     categories = {row["slug"] for row in document["definitions"]["categories"]}
     audiences = {row["slug"] for row in document["definitions"]["audiences"]}
     presentations = {
@@ -82,7 +99,9 @@ def load_source(root=SOURCE):
         )
         for variant in row["variants"]:
             UUID(variant["id"])
-            VariantCreate.model_validate({k: variant[k] for k in ("kind", "volume_ml", "price")})
+            VariantCreate.model_validate(
+                {k: variant[k] for k in ("kind", "volume_ml", "price", "active", "sold_out")}
+            )
             if (variant["kind"], Decimal(variant["volume_ml"])) not in presentations:
                 raise ValueError("Falta una presentación en la configuración de la semilla.")
         if len(row["images"]) > 5:
@@ -90,11 +109,14 @@ def load_source(root=SOURCE):
         for image in row["images"]:
             UUID(image["id"])
             if (
-                not image["url"].startswith("/temporal/media/")
+                not image["url"].startswith("/media/")
                 or image["url"].rsplit("/", 1)[1] not in filenames
             ):
                 raise ValueError("Referencia de fotografía no disponible localmente.")
             ImageCreate.model_validate({k: image[k] for k in ("position", "alt_es", "alt_en")})
+            referenced_images.add(image["url"].rsplit("/", 1)[1])
+    if referenced_images != filenames:
+        raise ValueError("La semilla contiene fotografías sin un perfume asociado.")
     return document
 
 

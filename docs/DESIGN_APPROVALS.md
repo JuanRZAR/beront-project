@@ -1,5 +1,15 @@
 # Aprobaciones de diseño
 
+## Navidad R01 — pendiente de elección, 14 de noviembre de 2026
+
+El propietario solicita tres propuestas: una con nieve y dos fundamentadas en referencias
+reconocidas. Se crean A · Noche de nieve, B · El arte de regalar y C · Gabinete de Navidad
+en `design/prototypes/navidad-r01-*.html`, comparables en `navidad-r01-propuestas.html`.
+Las tres conservan navegación, accesibilidad y adaptación por dispositivo. Se reutilizan
+fotografías existentes, sin cambios de producto, promociones, precios ni inventario.
+[Referencias y comprobaciones](../design/reviews/navidad-r01-referencias.md).
+Estado: ninguna aprobada ni implementada. La vista vigente del producto se conserva.
+
 ## Última vista del proyecto — aprobación explícita, 13 de noviembre de 2026
 
 El propietario declara: «apruebo todos los cambios de la ultima vista que me diste del proyecto,

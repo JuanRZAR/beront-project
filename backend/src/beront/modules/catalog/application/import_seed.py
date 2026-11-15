@@ -112,6 +112,8 @@ class ImportCatalogSeed:
                         source["kind"],
                         Decimal(source["volume_ml"]),
                         Decimal(source["price"]),
+                        active=source["active"],
+                        sold_out=source["sold_out"],
                     )
                     uow.catalog.add_variant(variant)
                     if variant.kind == "full_bottle":

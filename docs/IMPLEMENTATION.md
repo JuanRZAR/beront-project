@@ -1,5 +1,34 @@
 # Ampliación de BÉRONT: implementación y cumplimiento
 
+## Semilla canónica y base local nueva, 14 de noviembre de 2026
+
+Por instrucción del propietario, la lista del catálogo final de Decants pasa a ser la fuente
+de la semilla: 127 perfumes, 43 marcas, 425 presentaciones y 133 imágenes (127 principales y
+seis adicionales). Se reemplaza el JSON anterior y sus 132 fotos dentro de
+`backend/semillas/catalogo/`. Los nuevos WebP proceden de `backend/var/uploads/` y conservan
+exactamente los bytes, dimensiones y transparencia que tenía el proyecto final. No se borran
+las fotografías del almacenamiento del propietario ni los maestros de diseño.
+
+La semilla v2 incluye SHA-256 y metadatos por foto; el cargador rechaza archivos modificados,
+opacos, faltantes o sin asociación. El importador conserva las nueve presentaciones inactivas
+y los precios existentes en la captura del catálogo. La instalación nueva no depende de diseño
+ni requiere `importar-recortes`; se corrigen dos referencias antiguas de la semilla del Home.
+
+Se revisa que `beront-bd2` esté vacía y se aplican las cuatro migraciones existentes hasta
+`de252c02c932`; Alembic no detecta diferencias con los modelos. Se conserva el administrador
+local con sus credenciales actuales, sin copiar sesiones ni incluir credenciales en archivos
+de semilla. Se importan los 127 perfumes y 133 fotos y se inicializan seis mensajes del Home.
+Todos los saldos empiezan en cero, sin movimientos. `DATABASE_URL` y `MIGRATION_DATABASE_URL`
+de `backend/.env` apuntan a `beront-bd2`; las demás variables se conservan. La base anterior
+no se modifica y los servidores del propietario no se reinician.
+
+Verificación: 187 pruebas de backend aprobadas con PostgreSQL y almacenamiento temporales;
+Ruff y formato correctos. La prueba completa de semilla compara las 133 respuestas de medios
+con SHA-256 y comprueba la repetición sin perder cambios administrativos. En `beront-bd2`
+se comprueban de nuevo los 127 nombres, sus presentaciones, los 133 archivos HTTP exactos,
+transparencia y saldos cero. La normalización de las 133 fuentes conserva sus bytes.
+La aplicación habitual leerá la nueva base cuando el propietario reinicie su backend.
+
 ## Carrito: fotos vigentes y decants animados, 13 de noviembre de 2026
 
 El propietario solicita mostrar la foto del perfume en los completos y la foto junto al decant

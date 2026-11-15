@@ -6,6 +6,8 @@ from uuid import NAMESPACE_URL, UUID, uuid5
 
 
 def load_approved_images(manifest_path, document, originals):
+    if document.get("seed_version") == 2:
+        raise ValueError("La semilla vigente ya incluye las fotos sin fondo; importa el catálogo.")
     manifest_path = Path(manifest_path).resolve()
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     if manifest.get("revision") != "R02" or manifest.get("scope") != "bottle only":

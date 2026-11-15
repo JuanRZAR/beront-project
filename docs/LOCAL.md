@@ -1,5 +1,16 @@
 # Ejecución y verificación local
 
+## Base local y semilla vigente, 14 de noviembre de 2026
+
+`backend/.env` apunta a `beront-bd2` tanto para ejecución como para migraciones. La base nueva
+está migrada a `de252c02c932` y contiene la semilla canónica de 127 perfumes y 133 fotos sin
+fondo, además de seis mensajes del Home. Se conserva el administrador local con las mismas
+credenciales; los saldos empiezan en cero. No se modifica `beront-bd`.
+
+Si el backend estaba abierto antes del cambio de `.env`, su proceso sigue conectado a la
+base anterior hasta que el propietario lo detenga con Ctrl+C y ejecute otra vez
+`uv run beront run` desde `backend/`. El frontend de 4322 puede continuar abierto.
+
 ## Auditoría y benchmark, 13 de noviembre de 2026
 
 Resultados, correcciones y límites: [AUDITORIA.md](AUDITORIA.md).
@@ -174,7 +185,7 @@ uv run beront reset-password NOMBRE_DE_USUARIO
 Esto solicita una contraseña nueva y revoca todas las sesiones del administrador.
 No existe registro público ni recuperación por correo.
 
-## Semilla del catálogo original
+## Semilla canónica del catálogo final
 
 Desde `backend/`, verificar sin acceder a la base:
 
@@ -188,11 +199,14 @@ Después de migrar y crear el administrador, importar:
 uv run beront importar-catalogo
 ```
 
-La fuente está en `backend/semillas/catalogo/`: 130 perfumes, 400 presentaciones,
-42 marcas y 132 archivos. Las categorías, públicos y tamaños se leen del JSON;
+La fuente canónica está en `backend/semillas/catalogo/`: 127 perfumes, 425 presentaciones,
+43 marcas y 133 archivos. Reproduce los nombres y las imágenes del catálogo final de Decants
+aprobado el 14 de noviembre de 2026, con 127 fotos principales y seis adicionales.
+Las categorías, públicos y tamaños se leen del JSON;
 no son listas de negocio en el código de ejecución. Se publican los perfumes
 importados con saldo cero y fotografías vinculadas mediante URLs `/media/` persistidas.
-Falta la fotografía de Delina Eau de Parfum en la fuente original.
+Las 133 fotos incluyen transparencia; Delina Eau de Parfum ya tiene su foto vigente.
+Se conservan las 400 presentaciones de decant y 25 de completos, incluidas nueve desactivadas.
 
 La importación se puede repetir. Omite perfumes con el mismo UUID y conserva sus
 precios, publicación, fotografías y existencias editados. Reutiliza definiciones por
@@ -201,24 +215,25 @@ configuraciones desactivadas por el administrador. Un conflicto no se sobreescri
 se corrige en el catálogo antes de repetir. Cada perfume nuevo se guarda en una
 transacción; el proceso puede retomarse tras una interrupción.
 
-La misma semilla instala estados y transiciones iniciales editables y términos de prueba.
-No inventa un WhatsApp, cuentas bancarias ni tarifas. Antes de probar checkout, el propietario
+La misma semilla instala estados y transiciones iniciales editables y los términos y WhatsApp
+ya configurados por el propietario. No incluye cuentas bancarias ni tarifas. Antes de probar checkout, el propietario
 debe registrar contacto, provincias continentales, ciudades con sus tarifas y cuentas reales.
 No se incorporó una API de Servientrega ni una integración de correo; guía y seguimiento
 se registran manualmente y las recuperaciones se atienden por los contactos del pedido.
 
-Las fotografías de origen se conservan como entrada de semilla. Las copias servidas
-se validan y normalizan en `backend/var/uploads/`. La versión temporal del frontend
-se retiró el 1 de noviembre de 2026.
+`catalogo.json` versión 2 y `imagenes/` son suficientes para reproducir el catálogo en otra
+instalación. Antes de importar se verifican SHA-256, bytes, dimensiones, transparencia y
+correspondencia exacta de archivos. Las fotos son copias de los WebP finales, sin redimensionar
+ni cambiar calidad; el almacenamiento existente conserva sus bytes al importarlas en
+`backend/var/uploads/`. Las URL `/media/` se generan en cada instalación. La carpeta de semilla
+debe incluirse completa al compartir el repositorio. No depende de `design/` ni de la base anterior.
 
-## Aplicar los recortes aprobados Inkscape R02
+## Recortes aprobados Inkscape R02 (antecedente sustituido)
 
-Desde `backend/`, después de importar el catálogo original y con el administrador activo:
-
-```sh
-uv run beront importar-recortes --manifiesto ../design/assets/inkscape-catalog-r02-manifest.json --solo-validar
-uv run beront importar-recortes --manifiesto ../design/assets/inkscape-catalog-r02-manifest.json
-```
+La semilla v2 ya contiene las fotos sin fondo del catálogo final. No ejecutar
+`importar-recortes` al preparar una instalación nueva: su manifiesto R02 corresponde a la
+semilla antigua y el adaptador rechaza reemplazar la semilla vigente. Los maestros de diseño
+se conservan como material histórico y editable.
 
 La validación comprueba archivos, huellas y vínculos sin escribir. La importación es atómica e
 idempotente: conserva los originales en biblioteca, posiciones y textos alternativos; no modifica
@@ -226,8 +241,8 @@ precios ni existencias. Un vínculo original editado requiere revisión, no se s
 Los PNG se mantienen como maestros en diseño y se sirven como WebP RGBA sin pérdida mediante
 el contrato de medios existente. No hay migraciones ni dependencias nuevas.
 
-Aplicado el 8 de noviembre: 132 recortes, 129 perfumes y 135 vínculos. Una validación posterior
-devuelve 135 ya aplicados. Delina carece de original. Aplicación disponible en
+Aplicado originalmente el 8 de noviembre: 132 recortes, 129 perfumes y 135 vínculos. Delina
+carecía de original en esa revisión. Estos conteos no describen la semilla v2. Aplicación disponible en
 `http://localhost:4322/es/catalog/full-bottles` y `/es/catalog/decants`; API en `127.0.0.1:5000`.
 Las fotografías importadas se sirven correctamente. El 9 de noviembre el propietario autorizó
 reiniciar solo el backend para activar el Home; la preservación de alfa para futuras subidas

@@ -76,7 +76,7 @@ def default_messages():
                 "See full bottles",
                 "",
             ),
-            ["afnan-9pm", "lattafa-khamrah-waha", "xerjoff-erba-gold"],
+            ["afnan-9-pm-classic", "lattafa-khamrah-waha", "xerjoff-erba-pura"],
         ),
         (
             "shipping",

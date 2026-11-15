@@ -1,5 +1,41 @@
 # Memoria del proyecto BÉRONT
 
+## Semilla canónica del catálogo final — 14 de noviembre de 2026
+
+El propietario establece como única fuente los 127 perfumes de Decants y las imágenes de sus
+URL vigentes listadas en la conversación. Se sustituye la semilla anterior en su ubicación
+existente: `backend/semillas/catalogo/catalogo.json` v2 y `imagenes/`. Contiene 127 perfumes,
+43 marcas, 425 presentaciones (400 decants y 25 completos, nueve desactivadas) y 133 fotos
+WebP RGBA: 127 principales y seis adicionales. Los archivos se copian del almacenamiento del
+producto final, conservando sus bytes, transparencia y dimensiones; no se regeneran desde diseño.
+Delina incluye su foto actual. Se retiran únicamente los 132 archivos de la semilla antigua.
+
+El importador verifica las huellas SHA-256 y los metadatos antes de importar; conserva los
+estados de las presentaciones y sigue omitiendo perfumes existentes sin sobrescribir cambios
+administrativos ni existencias. La instalación nueva no depende de `design/` ni necesita
+`importar-recortes`, que rechaza la semilla v2. Los nombres de archivo `/media/` se generan
+por instalación y no son identificadores compartidos; el contenido de las fotos sí coincide.
+Los registros anteriores de 130 perfumes, 132 originales y Delina sin foto son históricos.
+
+Aplicado en `beront-bd2`: cuatro migraciones hasta `de252c02c932`, 127 perfumes, 133 medios y
+seis mensajes del Home. Se conserva el administrador local con las mismas credenciales y sin
+sesiones copiadas; los saldos empiezan en cero. Ambas conexiones de `backend/.env` apuntan a
+`beront-bd2`; la base anterior queda intacta. Verificados los 127 nombres y las 133 respuestas
+de imagen byte por byte, sin cambios de calidad. Suite de 187 pruebas backend, Ruff y formato
+correctos. Los servidores del propietario no se reinician: el backend leerá la nueva conexión
+al reiniciarlo el propietario. No se realizan commits, push ni cambios de historial Git.
+
+## Navidad R01 — propuestas visuales, 14 de noviembre de 2026
+
+Se preparan tres prototipos autónomos en design/: A · Noche de nieve, B · El arte de regalar,
+C · Gabinete de Navidad, con comparador navidad-r01-propuestas.html. Fuentes y recortes existentes;
+sin cambios en el producto, datos o servidores habituales. Referencias primarias de premios
+públicos CSS Design Awards y campaña Dior 2026 documentadas en design/reviews/navidad-r01-referencias.md.
+288 combinaciones responsivas y 21 recorridos interactivos correctos en tres motores, con
+textos ampliados, reducción de movimiento, teclado y simulación de dispositivos. Pendiente
+de elección/aprobación; no integrar en frontend hasta recibir instrucción explícita.
+El comparador se abre desde archivo en Chrome y no depende del servidor temporal de revisión.
+
 ## Auditoría funcional, rendimiento y dependencias — 13 de noviembre de 2026
 
 Se completa la auditoría solicitada; informe vigente en `docs/AUDITORIA.md`, con histórico
@@ -131,10 +167,10 @@ registro de cambios del software principal y de cada familia de prototipos.
 | Recortes sin fondo | Las ediciones previas a Inkscape siguen descartadas. R02, solo frascos, aprobado e integrado el 8 de noviembre. |
 | Última entrega de recortes | 132 PNG maestros y SVG editables R02; 135 vínculos del catálogo local actualizados. |
 | Alcance de la última intervención funcional | Home con backend de mensajes, gestión en Configuración y fotografías R02 sin fondo. |
-| Catálogo fuente | 130 perfumes, 42 casas, 400 presentaciones, 132 archivos de imagen y 135 vínculos de fotos. |
+| Catálogo fuente | Semilla v2: 127 perfumes, 43 casas, 425 presentaciones y 133 archivos/vínculos de fotos. |
 | Vistas del último prototipo | 24 perfumes completos y 119 decants. Son grupos que se superponen, no 143 perfumes diferentes. |
-| Fotografía faltante | Delina Eau de Parfum; se muestra el aviso de ausencia y no se inventa una foto. |
-| Datos comerciales actuales | 130 perfumes; 129 con foto. Precios, 154 saldos y movimientos conservados al importar R02. |
+| Fotografía faltante | Ninguna en la semilla v2; Delina Eau de Parfum incluye la foto vigente del producto final. |
+| Datos comerciales actuales | La semilla reproduce los precios y presentaciones actuales de los 127 perfumes; los nuevos saldos empiezan en cero. |
 | Procesos observados ahora | API en 5000 y aplicación real en 4322; diseño en 4367. 4321 pertenece a otro proyecto. No detener ni reemplazar. |
 | Git | Árbol de trabajo con numerosos cambios anteriores; no hacer commit, push, merge, ramas ni restauraciones sin orden expresa. |
 
@@ -366,17 +402,16 @@ Sus conteos se volvieron a leer al redactar esta memoria:
 
 | Elemento | Cantidad / estado |
 |---|---|
-| Perfumes únicos | 130 |
-| Casas comerciales | 42 |
-| Presentaciones | 400 |
-| Archivos de imagen únicos | 132 |
-| Asociaciones de fotografía con perfumes | 135 |
-| Perfumes con presentación completa | 24 |
-| Perfumes con decants | 119 |
-| Sin fotografía | Delina Eau de Parfum |
+| Perfumes únicos | 127 |
+| Casas comerciales | 43 |
+| Presentaciones | 425: 400 decants y 25 completos; nueve desactivadas |
+| Archivos de imagen únicos | 133 |
+| Asociaciones de fotografía con perfumes | 133 |
+| Perfumes con decants | 127 |
+| Sin fotografía | Ninguno |
 
-Un perfume puede pertenecer a ambos tipos. Hay fotos alternativas y recursos compartidos; por
-eso los números de asociaciones, archivos y perfumes fotografiados no coinciden.
+Un perfume puede pertenecer a ambos tipos. Se incluyen las 127 fotos principales y seis
+alternativas. Cada archivo tiene su SHA-256 y conserva la transparencia del catálogo final.
 
 Las fotos, nombres, casas, tamaños y precios del prototipo proceden de la semilla. No son una
 consulta en vivo a existencias, publicación, precios o configuración comercial de PostgreSQL.
