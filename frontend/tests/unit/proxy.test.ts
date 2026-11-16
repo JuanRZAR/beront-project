@@ -154,7 +154,7 @@ test("el proxy envía la dirección del cliente y descarta la que envía el nave
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "X-Client-IP": "203.0.113.99",
+          "X-Real-IP": "203.0.113.99",
         },
         body: "{}",
       });
@@ -162,7 +162,7 @@ test("el proxy envía la dirección del cliente y descarta la que envía el nave
       fetch.mockResolvedValueOnce(Response.json({ data: {} }));
       await proxy(request(), "v1/orders/recovery", false, address);
       return new Headers(fetch.mock.calls.at(-1)?.[1]?.headers).get(
-        "x-client-ip",
+        "x-real-ip",
       );
     };
     expect(await sent("198.51.100.7")).toBe("198.51.100.7");

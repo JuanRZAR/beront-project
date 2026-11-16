@@ -2,7 +2,7 @@ CREATE OR REPLACE FUNCTION beront_api.inventory_movement_add(p jsonb)
 RETURNS jsonb
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = pg_catalog, public, beront_api
+SET search_path = pg_catalog, public, beront_api, pg_temp
 AS $function$
 BEGIN
  INSERT INTO public.stock_movements(id,decant_stock_id,bottle_stock_id,target_id,kind,delta,balance_after,version_after,reason,actor_id,operation_id,fingerprint,created_at)

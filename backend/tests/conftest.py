@@ -104,7 +104,9 @@ def isolated_postgres(root):
     try:
         with psycopg.connect(**connection, autocommit=True) as db:
             db.execute(
-                sql.SQL("CREATE ROLE beront_app LOGIN PASSWORD {}").format(sql.Literal(password))
+                sql.SQL("CREATE ROLE beront LOGIN NOSUPERUSER PASSWORD {}").format(
+                    sql.Literal(password)
+                )
             )
         yield connection
     finally:
@@ -113,29 +115,21 @@ def isolated_postgres(root):
 
 def database_urls(connection, name):
     password, port = connection["password"], connection["port"]
-    return (
-        f"postgresql+psycopg://beront_migrator:{password}@127.0.0.1:{port}/{name}",
-        f"postgresql+psycopg://beront_app:{password}@127.0.0.1:{port}/{name}",
-    )
+    url = f"postgresql+psycopg://beront:{password}@127.0.0.1:{port}/{name}"
+    return url, url
 
 
 @contextlib.contextmanager
 def test_database(server, *, migrate=True):
     name = "beront_test_" + uuid4().hex
     with psycopg.connect(**server, autocommit=True) as control:
-        control.execute(sql.SQL("CREATE DATABASE {}").format(sql.Identifier(name)))
+        control.execute(sql.SQL("CREATE DATABASE {} OWNER beront").format(sql.Identifier(name)))
     migration_url, runtime_url = database_urls(server, name)
     engine = create_engine(migration_url)
     try:
         if migrate:
             with engine.begin() as connection:
                 command.upgrade(alembic_config(connection), "head")
-                connection.exec_driver_sql("GRANT USAGE ON SCHEMA public TO beront_app")
-                connection.exec_driver_sql("GRANT USAGE ON SCHEMA beront_api TO beront_app")
-                connection.exec_driver_sql(
-                    "GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA beront_api TO beront_app"
-                )
-                connection.exec_driver_sql("REVOKE ALL ON TABLE alembic_version FROM beront_app")
         yield migration_url, runtime_url, engine
     finally:
         engine.dispose()

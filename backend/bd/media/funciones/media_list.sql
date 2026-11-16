@@ -2,7 +2,7 @@ CREATE OR REPLACE FUNCTION beront_api.media_list(p jsonb)
 RETURNS jsonb
 LANGUAGE sql
 SECURITY DEFINER
-SET search_path = pg_catalog, public, beront_api
+SET search_path = pg_catalog, public, beront_api, pg_temp
 AS $function$
 WITH selected AS(
  SELECT * FROM public.media_assets WHERE kind='product'

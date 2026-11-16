@@ -1,6 +1,6 @@
 CREATE OR REPLACE FUNCTION beront_api.commerce_message_add(p jsonb)
 RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER
-SET search_path = pg_catalog, public, beront_api
+SET search_path = pg_catalog, public, beront_api, pg_temp
 AS $function$
 BEGIN
  IF EXISTS(SELECT 1 FROM jsonb_array_elements_text(p->'image_ids') v

@@ -2,7 +2,7 @@ CREATE OR REPLACE FUNCTION beront_api.catalog_option_get(p jsonb)
 RETURNS jsonb
 LANGUAGE sql
 SECURITY DEFINER
-SET search_path = pg_catalog, public, beront_api
+SET search_path = pg_catalog, public, beront_api, pg_temp
 AS $function$
 SELECT to_jsonb(d) FROM public.classification_options d WHERE d.id=(p->>'id')::uuid AND d.dimension=p->>'dimension';
 $function$;

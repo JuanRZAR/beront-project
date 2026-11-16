@@ -1,6 +1,6 @@
 CREATE OR REPLACE FUNCTION beront_api.orders_add(p jsonb)
 RETURNS jsonb LANGUAGE plpgsql
-SECURITY DEFINER SET search_path = pg_catalog, public, beront_api
+SECURITY DEFINER SET search_path = pg_catalog, public, beront_api, pg_temp
 AS $function$
 DECLARE item jsonb; current_price numeric; current_amount numeric; needed record;
 BEGIN

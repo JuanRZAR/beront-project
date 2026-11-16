@@ -19,6 +19,8 @@ from beront.shared.infrastructure.logging import configure_logging
 from beront.shared.presentation.errors import install_errors
 from beront.shared.presentation.security import client_address, install_security
 
+LOCAL_HOSTS = ["localhost", "127.0.0.1", "[::1]"]
+
 
 def create_app(settings=None, mailer=None):
     settings = settings or Settings.from_env()
@@ -33,16 +35,18 @@ def create_app(settings=None, mailer=None):
         SESSION_COOKIE_NAME="beront_session",
         SESSION_COOKIE_HTTPONLY=True,
         SESSION_COOKIE_SAMESITE="Lax",
-        SESSION_COOKIE_SECURE=False,
+        SESSION_COOKIE_SECURE=settings.frontend_origin.startswith("https://"),
         SESSION_COOKIE_PATH="/",
         PERMANENT_SESSION_LIFETIME=timedelta(hours=8),
         SESSION_REFRESH_EACH_REQUEST=False,
-        TRUSTED_HOSTS=["localhost", "127.0.0.1", "[::1]"],
+        TRUSTED_HOSTS=LOCAL_HOSTS + (["api"] if settings.production else []),
         WTF_CSRF_TIME_LIMIT=3600,
         RATELIMIT_ENABLED=settings.rate_limits,
         RATELIMIT_HEADERS_ENABLED=True,
     )
-    configure_logging(settings.storage_root / "logs", testing=settings.testing)
+    configure_logging(
+        settings.storage_root / "logs", testing=settings.testing, to_file=not settings.production
+    )
     app.extensions["beront"] = build_container(settings, mailer)
     install_errors(app)
     install_security(app, settings)
@@ -59,6 +63,11 @@ def create_app(settings=None, mailer=None):
     app.register_blueprint(orders_blueprint(csrf, limiter))
     app.register_blueprint(cart_blueprint(csrf, limiter))
     install_cli(app)
+
+    @app.get("/health")
+    @limiter.exempt
+    def health():
+        return jsonify({"status": "ok"})
 
     @app.get("/")
     def root():

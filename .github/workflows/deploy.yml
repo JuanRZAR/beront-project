@@ -1,0 +1,82 @@
+# Flujo: Pruebas -> Imagen (vps-check, hadolint, build, Trivy, prueba de consumo) -> Desplegar -> aviso si falla.
+# En un PR solo se prueba; con merge a main, además se publica y se despliega (guía 03, 3.4).
+name: Desplegar
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: desplegar-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  pruebas:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: PostgreSQL 17 para las pruebas del backend
+        run: |
+          sudo apt-get install -y -qq postgresql-common
+          sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
+          sudo apt-get install -y -qq postgresql-17
+          sudo chmod a+w /var/run/postgresql
+          echo "POSTGRES_BIN=/usr/lib/postgresql/17/bin" >> "$GITHUB_ENV"
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.13.6"
+
+      - name: Backend
+        working-directory: backend
+        run: |
+          uv sync --locked
+          uv run --locked ruff check src tests migrations
+          uv run --locked ruff format --check src tests migrations
+          uv run --locked pytest --cov=beront --cov-report=term
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.4.4"
+
+      - name: Frontend
+        working-directory: frontend
+        run: |
+          bun install --frozen-lockfile
+          bun run check
+          bun run lint
+          bun run format
+          bun run test
+
+  vps:
+    needs: pruebas
+    uses: JuanRZAR/infra-vps-tecnomovil/.github/workflows/deploy.yml@v1
+    with:
+      proyecto: beront
+      dockerfile: frontend/Dockerfile
+      contexto: frontend
+      imagenes: |
+        api backend/Dockerfile backend
+      env_prueba: |
+        APP_ENV=production
+        DATABASE_URL=postgresql+psycopg://prueba:prueba@postgres:5432/prueba
+        SECRET_KEY=prueba-ci-sin-valor-real-0123456789abcdef
+        FRONTEND_ORIGIN=http://localhost:8000
+        BACKEND_URL=http://api:8000
+        SITE_HOSTS=localhost
+      url_salud: https://beront.com/health
+      desplegar: ${{ github.event_name != 'pull_request' }}
+    secrets:
+      TS_OAUTH_CLIENT_ID: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+      TS_OAUTH_SECRET: ${{ secrets.TS_OAUTH_SECRET }}
+      VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+      VPS_HOST: ${{ secrets.VPS_HOST }}
+      VPS_KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
+      TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+      TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}

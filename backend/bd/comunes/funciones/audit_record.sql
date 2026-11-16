@@ -2,7 +2,7 @@ CREATE OR REPLACE FUNCTION beront_api.audit_record(p jsonb)
 RETURNS jsonb
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = pg_catalog, public, beront_api
+SET search_path = pg_catalog, public, beront_api, pg_temp
 AS $function$
 BEGIN
  INSERT INTO public.audit_events(id,actor_id,action,resource_id,request_id,created_at)

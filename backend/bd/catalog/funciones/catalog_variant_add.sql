@@ -2,7 +2,7 @@ CREATE OR REPLACE FUNCTION beront_api.catalog_variant_add(p jsonb)
 RETURNS jsonb
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = pg_catalog, public, beront_api
+SET search_path = pg_catalog, public, beront_api, pg_temp
 AS $function$
 BEGIN
  PERFORM 1 FROM public.presentations WHERE kind=p->>'kind' AND volume_ml=(p->>'volume_ml')::numeric AND active FOR SHARE;

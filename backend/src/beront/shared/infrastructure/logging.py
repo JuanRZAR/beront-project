@@ -18,21 +18,22 @@ class JsonFormatter(logging.Formatter):
         )
 
 
-def configure_logging(root, *, testing=False):
+def configure_logging(root, *, testing=False, to_file=True):
     logger = logging.getLogger("beront")
     logger.setLevel(logging.INFO)
     if not testing:
-        root.mkdir(parents=True, exist_ok=True)
         for handler in logger.handlers:
             handler.close()
         logger.handlers.clear()
-        handler = RotatingFileHandler(
-            root / "application.log", maxBytes=2_000_000, backupCount=3, encoding="utf-8"
-        )
-        handler.setFormatter(JsonFormatter())
-        logger.addHandler(handler)
         console = logging.StreamHandler()
-        console.setLevel(logging.WARNING)
         console.setFormatter(JsonFormatter())
+        if to_file:
+            root.mkdir(parents=True, exist_ok=True)
+            handler = RotatingFileHandler(
+                root / "application.log", maxBytes=2_000_000, backupCount=3, encoding="utf-8"
+            )
+            handler.setFormatter(JsonFormatter())
+            logger.addHandler(handler)
+            console.setLevel(logging.WARNING)
         logger.addHandler(console)
     return logger

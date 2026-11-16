@@ -2,7 +2,7 @@ CREATE OR REPLACE FUNCTION beront_api.media_visible(p jsonb)
 RETURNS jsonb
 LANGUAGE sql
 SECURITY DEFINER
-SET search_path = pg_catalog, public, beront_api
+SET search_path = pg_catalog, public, beront_api, pg_temp
 AS $function$
 SELECT to_jsonb(a) FROM public.media_assets a WHERE a.filename=p->>'filename'
  AND (COALESCE((p->>'private')::boolean,false) OR (a.kind='product' AND (EXISTS(

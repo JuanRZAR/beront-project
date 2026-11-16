@@ -1,6 +1,6 @@
 CREATE OR REPLACE FUNCTION beront_api.commerce_message_save(p jsonb)
 RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER
-SET search_path = pg_catalog, public, beront_api
+SET search_path = pg_catalog, public, beront_api, pg_temp
 AS $function$
 BEGIN
  IF NOT EXISTS(SELECT 1 FROM public.featured_messages WHERE id=(p->>'id')::uuid)

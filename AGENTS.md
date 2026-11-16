@@ -166,7 +166,7 @@ Ejecutar las comprobaciones pertinentes antes de declarar terminado.
 Informar qué cambió, qué se verificó y cualquier limitación real.
 No afirmar que una prueba pasó si no se ejecutó.
 Actualizar documentación cuando cambie un contrato aprobado.
-Trabajar solo en ejecución local durante esta etapa.
+Trabajar en ejecución local; el despliegue sigue «Despliegue en el VPS» de docs/ARCHITECTURE.md.
 
 ## 17. Servidores locales y migraciones
 No detener, reiniciar ni reemplazar los servidores de backend y frontend que el
@@ -178,3 +178,8 @@ servidores temporales, nunca la base del propietario.
 Las migraciones Alembic que requieran los cambios propios se generan desde los
 modelos, se revisan y se aplican a la base local sin pedir confirmación adicional;
 siguen vigentes las reglas del apartado 13.
+
+## 18. Entorno del propietario
+El propietario programa en macOS (Apple Silicon).
+Dar comandos, instalaciones y pasos solo para macOS.
+No recomendar herramientas, instalaciones ni pasos para Windows.

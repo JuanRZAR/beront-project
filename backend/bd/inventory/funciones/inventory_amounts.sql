@@ -2,7 +2,7 @@ CREATE OR REPLACE FUNCTION beront_api.inventory_amounts(p jsonb)
 RETURNS jsonb
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = pg_catalog, public, beront_api
+SET search_path = pg_catalog, public, beront_api, pg_temp
 AS $function$
 BEGIN
  IF p->>'kind'='decant' THEN

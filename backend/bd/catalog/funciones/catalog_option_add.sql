@@ -2,7 +2,7 @@ CREATE OR REPLACE FUNCTION beront_api.catalog_option_add(p jsonb)
 RETURNS jsonb
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = pg_catalog, public, beront_api
+SET search_path = pg_catalog, public, beront_api, pg_temp
 AS $function$
 DECLARE result jsonb;
 BEGIN

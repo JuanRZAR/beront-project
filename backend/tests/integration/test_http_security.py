@@ -87,3 +87,55 @@ def test_root_reports_api_ready_and_version(client):
     response = client.get("/")
     assert response.status_code == 200
     assert response.json == {"data": {"message": "API lista", "version": "0.1.0", "api": "v1"}}
+
+
+def test_production_profile_accepts_internal_host_and_secures_the_session(settings, client):
+    assert client.get("/", headers={"Host": "api:8000"}).status_code == 400
+    assert "Secure" not in client.get("/api/v1/auth/csrf").headers["Set-Cookie"]
+    production = create_app(
+        replace(settings, environment="production", frontend_origin="https://beront.com")
+    )
+    internal = production.test_client()
+    assert internal.get("/", headers={"Host": "api:8000"}).status_code == 200
+    assert internal.get("/", headers={"Host": "evil.example"}).status_code == 400
+    response = internal.get("/api/v1/auth/csrf", headers={"Host": "api:8000"})
+    assert "Secure" in response.headers["Set-Cookie"]
+    production.extensions["beront"].engine.dispose()
+
+
+def test_real_ip_is_trusted_only_from_loopback_or_in_production(settings):
+    from beront.shared.presentation.security import client_address
+
+    def address(app, remote):
+        with app.test_request_context(
+            "/", headers={"X-Real-IP": "203.0.113.7"}, environ_base={"REMOTE_ADDR": remote}
+        ):
+            return client_address()
+
+    local = create_app(settings)
+    proxied = create_app(
+        replace(settings, environment="production", frontend_origin="https://beront.com")
+    )
+    assert address(local, "127.0.0.1") == "203.0.113.7"
+    assert address(local, "172.18.0.3") == "172.18.0.3"
+    assert address(proxied, "172.18.0.3") == "203.0.113.7"
+    with proxied.test_request_context(
+        "/", headers={"X-Real-IP": "not-an-ip"}, environ_base={"REMOTE_ADDR": "172.18.0.3"}
+    ):
+        assert client_address() == "172.18.0.3"
+    for app in (local, proxied):
+        app.extensions["beront"].engine.dispose()
+
+
+def test_health_answers_without_database_or_rate_limit(settings, monkeypatch):
+    app = create_app(replace(settings, rate_limits=True))
+    client = app.test_client()
+
+    def database_down():
+        raise OperationalError("SELECT 1", {}, Exception("down"))
+
+    monkeypatch.setattr(app.extensions["beront"], "uow_factory", database_down)
+    for _ in range(320):
+        response = client.get("/health")
+    assert response.status_code == 200 and response.json == {"status": "ok"}
+    app.extensions["beront"].engine.dispose()

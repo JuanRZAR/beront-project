@@ -2,7 +2,7 @@ CREATE OR REPLACE FUNCTION beront_api.identity_password_set(p jsonb)
 RETURNS jsonb
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = pg_catalog, public, beront_api
+SET search_path = pg_catalog, public, beront_api, pg_temp
 AS $function$
 BEGIN
  UPDATE public.administrators SET password_hash=p->>'password_hash' WHERE id=(p->>'id')::uuid;

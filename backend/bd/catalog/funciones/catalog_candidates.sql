@@ -2,7 +2,7 @@ CREATE OR REPLACE FUNCTION beront_api.catalog_candidates(p jsonb)
 RETURNS jsonb
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = pg_catalog, public, beront_api
+SET search_path = pg_catalog, public, beront_api, pg_temp
 AS $function$
 DECLARE
  f jsonb := COALESCE(p->'filters','{}'::jsonb);

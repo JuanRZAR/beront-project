@@ -1,6 +1,6 @@
 CREATE OR REPLACE FUNCTION beront_api.commerce_destination(p jsonb)
 RETURNS jsonb LANGUAGE sql
-SECURITY DEFINER SET search_path = pg_catalog, public, beront_api
+SECURITY DEFINER SET search_path = pg_catalog, public, beront_api, pg_temp
 AS $function$
 SELECT to_jsonb(c)||jsonb_build_object('province_name',pr.name,'province_code',pr.code)
 FROM public.cities c JOIN public.provinces pr ON pr.id=c.province_id

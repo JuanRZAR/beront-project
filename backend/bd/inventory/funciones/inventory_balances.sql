@@ -2,7 +2,7 @@ CREATE OR REPLACE FUNCTION beront_api.inventory_balances(p jsonb)
 RETURNS jsonb
 LANGUAGE sql
 SECURITY DEFINER
-SET search_path = pg_catalog, public, beront_api
+SET search_path = pg_catalog, public, beront_api, pg_temp
 AS $function$
 WITH combined AS(
  SELECT 0 AS kind_order,d.id,pr.name AS product_name,b.name AS brand_name,0::numeric AS volume,

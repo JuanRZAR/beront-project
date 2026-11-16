@@ -68,3 +68,44 @@ def test_cart_stock_validation_is_strict_by_default_and_explicitly_configurable(
     monkeypatch.setenv("CART_REQUIRES_STOCK", "typo")
     with pytest.raises(ValueError, match="CART_REQUIRES_STOCK"):
         Settings.from_env()
+
+
+PRODUCTION = {
+    "database_url": "postgresql+psycopg://beront:x@postgres:5432/beront",
+    "frontend_origin": "https://beront.com",
+    "environment": "production",
+}
+
+
+@pytest.mark.parametrize(
+    "overrides",
+    [
+        {"environment": "staging"},
+        {"database_url": "postgresql+psycopg:///beront"},
+        {"database_url": "postgresql://beront:x@postgres:5432/beront"},
+        {"frontend_origin": "http://beront.com"},
+        {"frontend_origin": "https://beront.com/path"},
+        {"frontend_origin": "https://"},
+    ],
+)
+def test_production_profile_rejects_unsafe_values(overrides):
+    with pytest.raises(ValueError):
+        Settings(secret_key=secrets.token_urlsafe(32), **(PRODUCTION | overrides))
+
+
+def test_production_profile_accepts_remote_database_and_https_origin(monkeypatch):
+    monkeypatch.setenv("APP_ENV", "production")
+    monkeypatch.setenv("DATABASE_URL", PRODUCTION["database_url"])
+    monkeypatch.setenv("FRONTEND_ORIGIN", PRODUCTION["frontend_origin"])
+    monkeypatch.setenv("SECRET_KEY", secrets.token_urlsafe(32))
+    assert Settings.from_env().production
+
+
+def test_local_profile_keeps_local_database(monkeypatch):
+    monkeypatch.delenv("APP_ENV", raising=False)
+    monkeypatch.setenv("DATABASE_URL", PRODUCTION["database_url"])
+    monkeypatch.setenv("SECRET_KEY", secrets.token_urlsafe(32))
+    with pytest.raises(ValueError):
+        Settings.from_env()
+    monkeypatch.setenv("DATABASE_URL", "postgresql+psycopg://localhost/beront")
+    assert not Settings.from_env().production

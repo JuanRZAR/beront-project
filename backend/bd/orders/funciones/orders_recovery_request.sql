@@ -1,6 +1,6 @@
 CREATE OR REPLACE FUNCTION beront_api.orders_recovery_request(p jsonb)
 RETURNS jsonb LANGUAGE plpgsql
-SECURITY DEFINER SET search_path = pg_catalog, public, beront_api
+SECURITY DEFINER SET search_path = pg_catalog, public, beront_api, pg_temp
 AS $function$
 DECLARE
  wait interval := make_interval(secs => (p->>'cooldown_seconds')::integer);
