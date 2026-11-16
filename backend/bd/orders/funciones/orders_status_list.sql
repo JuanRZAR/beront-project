@@ -1,6 +1,6 @@
 CREATE OR REPLACE FUNCTION beront_api.orders_status_list(p jsonb)
 RETURNS jsonb LANGUAGE sql
-SECURITY DEFINER SET search_path = pg_catalog, public, beront_api
+SECURITY DEFINER SET search_path = pg_catalog, public, beront_api, pg_temp
 AS $function$
 SELECT COALESCE(jsonb_agg(to_jsonb(d) ORDER BY d.id),'[]'::jsonb) FROM public.order_statuses d;
 $function$;

@@ -1,10 +1,51 @@
 # BÉRONT — Arquitectura técnica de la primera versión
 
 Estado: arquitectura aprobada por el propietario el 23 de octubre de 2026.
-Entorno: ejecución local. Despliegue fuera de alcance.
+Entorno: ejecución local y despliegue en el VPS compartido según «Despliegue en el VPS».
 La aprobación arquitectónica no aprueba los prototipos visuales.
 Conexión vigente en este equipo: `beront-bd`, PostgreSQL de Docker en `127.0.0.1:5432`,
 para ejecución y migraciones, según `backend/.env`.
+
+## Despliegue en el VPS, 15 de noviembre de 2026
+
+El propietario autoriza publicar BÉRONT en el VPS del equipo con la guía de
+`JuanRZAR/infra-vps-tecnomovil` (`guia/02` y `guia/03`), que prevalece en lo relativo al
+servidor. Forma «Frontend con SSR + API»: una entrada `beront` en `projects.yml`, dominio
+`beront.com` en Cloudflare, puertos 8131/8132 y PostgreSQL 17 compartido. El repositorio es
+público: ningún secreto, IP ni host interno en el código.
+
+- Contenedores: `app` (Astro, público, `${IMAGE}`) y `api` (Flask, interno, `${IMAGE_API}`),
+  ambos en el puerto 8000 como usuario 10001. Astro compila con Bun y se ejecuta con Node
+  (`node ./dist/server/entry.mjs`). Flask se ejecuta con gunicorn, un worker y cuatro hilos,
+  para que Flask-Limiter conserve un único contador en memoria por contenedor.
+- Producción: Navegador -> Cloudflare -> nginx -> `app` -> `http://api:8000` (red `default`
+  de cada versión) -> PostgreSQL `postgres:5432` (red `infra`). Solo `api` usa `infra`.
+- IP del cliente: nginx la entrega en `X-Real-IP`. Astro la reenvía a Flask en esa cabecera
+  cuando `TRUST_PROXY=true` y, en local, usa la dirección de la conexión; la reenvía también
+  desde el SSR y `/media`. Flask acepta `X-Real-IP` desde loopback o con `APP_ENV=production`,
+  donde `api` no publica puertos. Sustituye a `X-Client-IP`.
+- `/health` en `app` y en `api`: 200 sin base, sin sesión y sin llamar a otros servicios.
+- Perfil `APP_ENV=production`: base del VPS, origen HTTPS propio (o HTTP de loopback para
+  `deploy-dev`), cookie de sesión `Secure` con HTTPS, host `api` admitido y registros en la
+  salida estándar con nivel INFO.
+  El perfil `local` no cambia. El frontend admite los hosts locales y los de `SITE_HOSTS`.
+- Rol único: el que crea `vps-new-project`, dueño de la base y sin superusuario, para la app y
+  para el servicio `migrate` (`alembic upgrade head`). En el VPS solo existe `DATABASE_URL`;
+  Alembic usa `MIGRATION_DATABASE_URL` cuando está definida y, si no, `DATABASE_URL`.
+  Las funciones fijan `search_path = pg_catalog, public, beront_api, pg_temp` y no conceden
+  EXECUTE a PUBLIC. Conexiones: 1 worker x 4 hilos x 2 versiones = 8, más `migrate`, de las
+  20 del rol. Las pruebas usan un rol equivalente, dueño de la base y sin superusuario.
+- Archivos: `backend/var` se monta desde `/srv/apps/beront/data/var`. Producción empieza con
+  la base vacía; el superusuario, la semilla y los mensajes del Home se cargan con
+  `beront createsuperuser`, `importar-catalogo` e `inicializar-home` dentro de `api`, cuya
+  imagen incluye `semillas/`. Los ejecuta el admin del VPS. Las fotografías locales de `var/uploads` no se suben.
+- Correo: Gmail con contraseña de aplicación por SMTP 587 con STARTTLS. Las variables quedan
+  vacías hasta que el propietario lo active; mientras tanto la recuperación responde 503.
+- `PUBLIC_CATALOG_ONLY` y `PUBLIC_CART_ENABLED` se fijan al compilar la imagen de `app`.
+- Dependencia nueva: gunicorn, servidor de producción exigido por la guía.
+- Fotografías nuevas y comprobantes: máximo 12,5 MP (antes 20) y una a la vez por proceso,
+  medido a unos 170 MB por foto JPEG y 385 MB por PNG con transparencia. La semilla
+  (máximo 5,47 MP) no cambia.
 
 ## Preferencia de animaciones del sitio, 14 de noviembre de 2026
 
@@ -261,9 +302,8 @@ las del apartado del 27 de octubre cuando las contradicen.
   dependencias nuevas, desde `modules/orders/infrastructure/mailer.py`. Sin `SMTP_HOST`, la
   recuperación responde 503 `RECOVERY_UNAVAILABLE`. El envío ocurre fuera de la petición para
   no revelar por el tiempo de respuesta si la cédula tiene pedidos.
-- La dirección del cliente llega al backend por la cabecera `X-Client-IP`, que el proxy de
-  Astro establece y que Flask acepta únicamente desde loopback. También alimenta los límites de
-  solicitudes.
+- La dirección del cliente llega al backend por la cabecera `X-Real-IP`, que el proxy de
+  Astro establece según «Despliegue en el VPS». También alimenta los límites de solicitudes.
 - La consulta por código reutiliza el código guardado del pedido; la recuperación no lo rota.
 
 Tienda pública (revisión 06, aprobada e implementada el 31 de octubre de 2026): cabecera, pie y
@@ -500,6 +540,7 @@ y https://bun.com/guides/ecosystem/astro .
 
 ### Comunicación
 Navegador -> Astro/Bun localhost:4321 -> Flask 127.0.0.1:5000 -> PostgreSQL.
+En el VPS: Navegador -> nginx -> Astro/Node `app` -> Flask `http://api:8000` -> PostgreSQL.
 Astro proporciona proxy de destino fijo para /api/* y /media/*.
 Conserva cookies, códigos y cabeceras; prohíbe destinos controlados por el usuario.
 SSR reenvía cookies exclusivamente al backend configurado.
@@ -568,6 +609,7 @@ Complementos aprobados:
 - Pydantic: contratos HTTP.
 - Flask-WTF: CSRF.
 - Flask-Limiter: límites locales en memoria.
+- gunicorn: servidor WSGI de producción en el VPS.
 - Pillow: validar/recodificar fotografías y retirar metadatos.
 - pytest/pytest-cov: pruebas y cobertura.
 - Ruff: lint y formato Python.
@@ -588,6 +630,10 @@ Búsqueda PostgreSQL parametrizada y paginada; ampliar solo tras mediciones y ap
 ```text
 /
 ├── AGENTS.md, CLAUDE.md, .gitignore, README.md, project_memory.md
+├── .github/workflows/deploy.yml        # Llama al flujo compartido del VPS
+├── deploy/
+│   ├── deploy-dev/compose.yml, .env.example
+│   └── deploy-produccion/compose.yml, .env.example, README.md
 ├── docs/
 │   ├── ARCHITECTURE.md                 # Arquitectura aprobada
 │   ├── LOCAL.md                        # Configuración y verificación local
@@ -602,6 +648,7 @@ Búsqueda PostgreSQL parametrizada y paginada; ampliar solo tras mediciones y ap
 │   └── reviews/                        # Capturas por viewport
 ├── backend/
 │   ├── .gitignore, .env.example, .python-version, pyproject.toml, uv.lock
+│   ├── Dockerfile, .dockerignore
 │   ├── alembic.ini
 │   ├── bd/<modulo>/funciones/<funcion>.sql
 │   ├── migrations/env.py, script.py.mako, versions/<revision>.py
@@ -622,11 +669,12 @@ Búsqueda PostgreSQL parametrizada y paginada; ampliar solo tras mediciones y ap
 │   └── var/{uploads,staging,logs}/
 └── frontend/
     ├── .gitignore, .env.example, package.json, bun.lock
+    ├── Dockerfile, .dockerignore
     ├── astro.config.mjs, tsconfig.json, eslint.config.js
     ├── prettier.config.mjs, playwright.config.ts
     ├── public/{brand,fonts}/
     ├── src/env.d.ts, middleware.ts
-    ├── src/pages/index.astro, 404.astro
+    ├── src/pages/index.astro, 404.astro, health.ts
     ├── src/pages/api/[...path].ts, media/[...path].ts
     ├── src/pages/[locale]/index.astro, cart.astro
     ├── src/pages/[locale]/catalog/decants.astro, full-bottles.astro
@@ -719,7 +767,7 @@ Referencia: https://top10.owasp.org/2025/ .
 | A10 excepciones | Actualización parcial/fail-open | Rollback, timeout, fail-closed y errores uniformes | UoW, HTTP, clientes |
 
 CSRF en login/logout y mutaciones admin; quote público exento.
-JSON máximo 64 KiB. Imagen JPEG/PNG/WebP máximo 5 MiB y 20 MP, cinco por perfume.
+JSON máximo 64 KiB. Imagen JPEG/PNG/WebP máximo 5 MiB y 12,5 MP, cinco por perfume; se procesa una a la vez.
 Prohibir SVG subido; SVG de iconos/marca revisado como recurso del proyecto.
 Generar nombres en servidor, recodificar y retirar EXIF/metadatos. Archivos fuera del código.
 Fotografías de borradores/archivados solo para admin.
@@ -797,7 +845,8 @@ Los locks y las migraciones se conservan; design/ se ignora en la raíz.
 5. cart backend: precios/stock agregados y enlace sin mutaciones.
 6. Prototipos concretos para aprobación explícita por vista.
 7. Frontend integrado solo con backend terminado y prototipo aprobado.
-8. Verificación integral y documentación local; sin despliegue.
+8. Verificación integral y documentación local.
+9. Despliegue en el VPS según «Despliegue en el VPS».
 
 Pruebas obligatorias:
 - Tamaños no predefinidos; precisión Decimal; saldo compartido; límites y cantidades inválidas.
@@ -991,7 +1040,7 @@ Ejecutar las comprobaciones pertinentes antes de declarar terminado.
 Informar qué cambió, qué se verificó y cualquier limitación real.
 No afirmar que una prueba pasó si no se ejecutó.
 Actualizar documentación cuando cambie un contrato aprobado.
-Trabajar solo en ejecución local durante esta etapa.
+Trabajar en ejecución local; el despliegue sigue «Despliegue en el VPS» de docs/ARCHITECTURE.md.
 
 ## 17. Servidores locales y migraciones
 No detener, reiniciar ni reemplazar los servidores de backend y frontend que el
@@ -1003,6 +1052,11 @@ servidores temporales, nunca la base del propietario.
 Las migraciones Alembic que requieran los cambios propios se generan desde los
 modelos, se revisan y se aplican a la base local sin pedir confirmación adicional;
 siguen vigentes las reglas del apartado 13.
+
+## 18. Entorno del propietario
+El propietario programa en macOS (Apple Silicon).
+Dar comandos, instalaciones y pasos solo para macOS.
+No recomendar herramientas, instalaciones ni pasos para Windows.
 ```
 
 
@@ -1014,6 +1068,7 @@ siguen vigentes las reglas del apartado 13.
 .env
 .env.*
 !.env.example
+deploy/deploy-dev/prueba.env
 
 *.log
 *.tmp

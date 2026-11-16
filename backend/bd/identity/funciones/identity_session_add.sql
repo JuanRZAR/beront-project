@@ -2,7 +2,7 @@ CREATE OR REPLACE FUNCTION beront_api.identity_session_add(p jsonb)
 RETURNS jsonb
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = pg_catalog, public, beront_api
+SET search_path = pg_catalog, public, beront_api, pg_temp
 AS $function$
 BEGIN
  INSERT INTO public.admin_sessions(id,admin_id,token_hash,created_at,last_seen_at,expires_at,revoked_at)

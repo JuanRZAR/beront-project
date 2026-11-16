@@ -328,7 +328,7 @@ def recover(client, checkout, cedula, ip="203.0.113.10"):
     return client.post(
         "/api/v1/orders/recovery",
         json={"cedula": cedula},
-        headers={**checkout["auth"], "X-Client-IP": ip},
+        headers={**checkout["auth"], "X-Real-IP": ip},
     )
 
 

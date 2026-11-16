@@ -1,13 +1,29 @@
 import { defineMiddleware } from "astro:middleware";
 import { isLocale } from "./shared/i18n";
-import { serverGet } from "./shared/http/server";
+import {
+  LOCAL_HOSTS,
+  clientIp,
+  serverGet,
+  withClientIp,
+} from "./shared/http/server";
 import { ApiError } from "./shared/http/errors";
 import type { Session } from "./shared/http/contracts";
 
 export const onRequest = defineMiddleware(async (context, next) => {
-  const trustedHost = ["localhost", "127.0.0.1", "[::1]"].includes(
-    context.url.hostname,
-  );
+  const host = context.request.headers.get("host") ?? context.url.host;
+  let hostname = "";
+  try {
+    hostname = new URL("http://" + host).hostname;
+  } catch {
+    hostname = "";
+  }
+  const localHost = LOCAL_HOSTS.includes(hostname);
+  const trustedHost =
+    localHost ||
+    (process.env.SITE_HOSTS ?? "")
+      .split(",")
+      .map((site) => site.trim().toLowerCase())
+      .includes(hostname);
   let path = context.url.pathname;
   async function resolve(): Promise<Response> {
     if (!trustedHost) return new Response("Invalid host", { status: 400 });
@@ -16,6 +32,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
     } catch {
       return new Response("Invalid path", { status: 400 });
     }
+    if (path === "/health") return next();
     const first = path.split("/")[1];
     if (
       first &&
@@ -78,7 +95,16 @@ export const onRequest = defineMiddleware(async (context, next) => {
     }
     return next();
   }
-  const original = await resolve();
+  let connection = "";
+  try {
+    connection = context.clientAddress;
+  } catch {
+    connection = "";
+  }
+  const original = await withClientIp(
+    clientIp(context.request, connection),
+    resolve,
+  );
   const response = new Response(original.body, {
     status: original.status,
     statusText: original.statusText,
@@ -97,7 +123,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
     response.headers.set(
       "Content-Security-Policy",
       "default-src 'self'; img-src 'self' data:; font-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self'" +
-        (trustedHost ? " ws://" + context.url.host : "") +
+        (localHost ? " ws://" + host : "") +
         "; frame-ancestors 'none'; base-uri 'self'; form-action 'self'",
     );
   if (

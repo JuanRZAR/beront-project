@@ -1,12 +1,17 @@
 import hashlib
 import io
 import re
+import threading
 import warnings
 from uuid import uuid4
 
 from PIL import Image, ImageOps, UnidentifiedImageError
 
 from beront.shared.domain.errors import DomainError, NotFound
+
+MAX_PIXELS = 12_500_000
+# Decoding holds roughly 14-32 MB per megapixel; one image at a time bounds the peak.
+PROCESSING = threading.Lock()
 
 
 class LocalImageStorage:
@@ -27,15 +32,15 @@ class LocalImageStorage:
                 with Image.open(io.BytesIO(payload)) as image:
                     if image.format not in {"JPEG", "PNG", "WEBP"}:
                         raise DomainError("INVALID_IMAGE_TYPE", "Usa JPEG, PNG o WebP.")
-                    if image.width * image.height > 20_000_000 or getattr(
+                    if image.width * image.height > MAX_PIXELS or getattr(
                         image, "is_animated", False
                     ):
                         raise DomainError(
                             "INVALID_IMAGE",
-                            "La imagen debe ser estática y de hasta 20 megapíxeles.",
+                            "La imagen debe ser estática y de hasta 12,5 megapíxeles.",
                         )
                     image.verify()
-                with Image.open(io.BytesIO(payload)) as image:
+                with PROCESSING, Image.open(io.BytesIO(payload)) as image:
                     alpha = "A" in image.getbands() or "transparency" in image.info
                     normalized = ImageOps.exif_transpose(image).convert("RGBA" if alpha else "RGB")
                     normalized.info.clear()

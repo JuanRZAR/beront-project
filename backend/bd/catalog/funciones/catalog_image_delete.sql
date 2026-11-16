@@ -2,7 +2,7 @@ CREATE OR REPLACE FUNCTION beront_api.catalog_image_delete(p jsonb)
 RETURNS jsonb
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = pg_catalog, public, beront_api
+SET search_path = pg_catalog, public, beront_api, pg_temp
 AS $function$
 BEGIN
  DELETE FROM public.product_images WHERE id=(p->>'id')::uuid AND version=(p->>'version')::integer;

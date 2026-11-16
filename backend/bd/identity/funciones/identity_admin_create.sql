@@ -2,7 +2,7 @@ CREATE OR REPLACE FUNCTION beront_api.identity_admin_create(p jsonb)
 RETURNS jsonb
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = pg_catalog, public, beront_api
+SET search_path = pg_catalog, public, beront_api, pg_temp
 AS $function$
 BEGIN
  IF EXISTS(SELECT 1 FROM public.administrators) THEN RAISE EXCEPTION USING MESSAGE='ADMIN_ALREADY_EXISTS'; END IF;

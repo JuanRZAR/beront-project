@@ -2,7 +2,7 @@ CREATE OR REPLACE FUNCTION beront_api.catalog_product_by_slug(p jsonb)
 RETURNS jsonb
 LANGUAGE sql
 SECURITY DEFINER
-SET search_path = pg_catalog, public, beront_api
+SET search_path = pg_catalog, public, beront_api, pg_temp
 AS $function$
 SELECT beront_api.catalog_product_get(jsonb_build_object('id',pr.id)) FROM public.products pr WHERE pr.slug=p->>'slug';
 $function$;

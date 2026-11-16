@@ -21,7 +21,7 @@ def run_migrations():
         with context.begin_transaction():
             context.run_migrations()
         return
-    url = os.environ["MIGRATION_DATABASE_URL"]
+    url = os.environ.get("MIGRATION_DATABASE_URL") or os.environ["DATABASE_URL"]
     if context.is_offline_mode():
         context.configure(
             url=url,

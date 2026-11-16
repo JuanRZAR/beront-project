@@ -1,6 +1,6 @@
 CREATE OR REPLACE FUNCTION beront_api.commerce_province_save(p jsonb)
 RETURNS jsonb LANGUAGE plpgsql
-SECURITY DEFINER SET search_path = pg_catalog, public, beront_api
+SECURITY DEFINER SET search_path = pg_catalog, public, beront_api, pg_temp
 AS $function$
 DECLARE result jsonb;
 BEGIN

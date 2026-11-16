@@ -11,6 +11,9 @@ from beront.shared.infrastructure.modelos.base import now as now
 from beront.shared.infrastructure.modelos.comunes.tables import AuditEventModel as AuditEventModel
 from beront.shared.infrastructure.pg_call import PgCall
 
+# One shared callable: psycopg caches a loader class per distinct loads function.
+JSON_LOADS = partial(json.loads, parse_float=Decimal)
+
 
 class PgDatabase:
     def __init__(self, url):
@@ -23,7 +26,7 @@ class PgDatabase:
             options="-c statement_timeout=10000 -c timezone=UTC",
             row_factory=dict_row,
         )
-        set_json_loads(partial(json.loads, parse_float=Decimal), connection)
+        set_json_loads(JSON_LOADS, connection)
         return connection
 
     def dispose(self):

@@ -1,6 +1,6 @@
 CREATE OR REPLACE FUNCTION beront_api.orders_list(p jsonb)
 RETURNS jsonb LANGUAGE plpgsql
-SECURITY DEFINER SET search_path = pg_catalog, public, beront_api
+SECURITY DEFINER SET search_path = pg_catalog, public, beront_api, pg_temp
 AS $function$
 DECLARE total integer; items jsonb:='[]'::jsonb; row record;
 BEGIN

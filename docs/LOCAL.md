@@ -1,5 +1,22 @@
 # Ejecución y verificación local
 
+## Validación para el VPS, 15 de noviembre de 2026
+
+Preparación según «Despliegue en el VPS» de docs/ARCHITECTURE.md y la guía 02 de
+`infra-vps-tecnomovil`. `deploy/deploy-dev` levanta las imágenes de producción con PostgreSQL 17:
+`docker compose -f deploy/deploy-dev/compose.yml up -d --build`, migraciones con
+`run --rm migrate` y carga inicial con `exec api beront ...`.
+
+- Backend: 202 pruebas, cobertura 94 %; frontend: 31 unitarias, `astro check`, ESLint y Prettier.
+- Imágenes: `app` 522 MB y `api` 405 MB; hadolint y Trivy sin hallazgos críticos.
+- Carga de 30 s con 20 conexiones y direcciones distintas contra `/es/catalog/decants`:
+  p95 entre 510 y 600 ms, 4 conexiones a la base como máximo, memoria estable entre cargas.
+- Playwright (`bun run test:app`): fallos conocidos anteriores al despliegue, presentes también
+  en el commit `26eea00` sin cambios. `application-images.spec.ts` desborda 2 px a 320 px en
+  Chromium y WebKit; `application-motion.spec.ts` recibe `animation-name: none` en Firefox en
+  varios anchos de forma intermitente. El propietario decidió corregirlos aparte; el flujo de
+  GitHub Actions no ejecuta Playwright.
+
 ## Base local de Docker y semilla vigente, 14 de noviembre de 2026
 
 `backend/.env` apunta a `beront-bd`, PostgreSQL de Docker en `127.0.0.1:5432`, tanto para
@@ -202,7 +219,7 @@ Copiar backend/.env.example a backend/.env y completar los valores localmente:
 
 | Variable | Uso |
 |---|---|
-| APP_ENV | Solo local. |
+| APP_ENV | `local` en este equipo; `production` solo en el VPS. |
 | SECRET_KEY | Secreto aleatorio de al menos 32 caracteres. |
 | DATABASE_URL | PostgreSQL local, driver postgresql+psycopg y rol beront_app. |
 | MIGRATION_DATABASE_URL | Misma base con el rol beront_migrator. |
@@ -494,6 +511,8 @@ con FRONTEND_ORIGIN del backend para las operaciones protegidas por CSRF.
 El frontend funciona con Astro SSR y Bun, y envía /api/ y /media/ al backend local.
 BACKEND_URL puede definirse en frontend/.env; el valor predeterminado es
 http://127.0.0.1:5000. No se necesitan credenciales de PostgreSQL en el frontend.
+SITE_HOSTS (dominios públicos separados por comas) y TRUST_PROXY quedan vacíos o en `false`
+en local; en el VPS se definen según «Despliegue en el VPS» de docs/ARCHITECTURE.md.
 Si Flask no está disponible, las vistas conservan la navegación y muestran un error controlado.
 La barra interna de desarrollo de Astro está desactivada.
 

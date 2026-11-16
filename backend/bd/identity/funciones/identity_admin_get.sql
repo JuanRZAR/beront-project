@@ -2,7 +2,7 @@ CREATE OR REPLACE FUNCTION beront_api.identity_admin_get(p jsonb)
 RETURNS jsonb
 LANGUAGE sql
 SECURITY DEFINER
-SET search_path = pg_catalog, public, beront_api
+SET search_path = pg_catalog, public, beront_api, pg_temp
 AS $function$
 SELECT to_jsonb(a) - 'singleton_slot' FROM public.administrators a
  WHERE ((p->>'id') IS NOT NULL AND a.id=(p->>'id')::uuid)

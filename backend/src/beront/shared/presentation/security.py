@@ -1,7 +1,7 @@
 import ipaddress
 from uuid import uuid4
 
-from flask import g, request
+from flask import current_app, g, request
 from flask_wtf.csrf import CSRFError
 
 from beront.shared.presentation.errors import error_response
@@ -10,8 +10,9 @@ LOOPBACK = {"127.0.0.1", "::1"}
 
 
 def client_address():
-    forwarded = request.headers.get("X-Client-IP")
-    if forwarded and request.remote_addr in LOOPBACK:
+    forwarded = request.headers.get("X-Real-IP")
+    trusted = request.remote_addr in LOOPBACK or current_app.config["BERONT_TRUST_PROXY"]
+    if forwarded and trusted:
         try:
             return str(ipaddress.ip_address(forwarded.strip()))
         except ValueError:
@@ -20,6 +21,8 @@ def client_address():
 
 
 def install_security(app, settings):
+    app.config["BERONT_TRUST_PROXY"] = settings.production
+
     @app.before_request
     def request_context():
         g.request_id = str(uuid4())

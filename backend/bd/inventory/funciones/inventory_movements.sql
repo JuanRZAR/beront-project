@@ -2,7 +2,7 @@ CREATE OR REPLACE FUNCTION beront_api.inventory_movements(p jsonb)
 RETURNS jsonb
 LANGUAGE sql
 SECURITY DEFINER
-SET search_path = pg_catalog, public, beront_api
+SET search_path = pg_catalog, public, beront_api, pg_temp
 AS $function$
 WITH labelled AS(
  SELECT m.*,pr.id AS product_id,pr.name AS product_name,b.name AS brand_name,v.volume_ml

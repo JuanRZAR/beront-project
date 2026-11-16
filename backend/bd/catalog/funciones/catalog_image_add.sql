@@ -2,7 +2,7 @@ CREATE OR REPLACE FUNCTION beront_api.catalog_image_add(p jsonb)
 RETURNS jsonb
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = pg_catalog, public, beront_api
+SET search_path = pg_catalog, public, beront_api, pg_temp
 AS $function$
 BEGIN
  IF NOT EXISTS(SELECT 1 FROM public.media_assets WHERE id=(p->>'asset_id')::uuid AND kind='product') THEN RAISE EXCEPTION USING MESSAGE='INVALID_ASSET'; END IF;

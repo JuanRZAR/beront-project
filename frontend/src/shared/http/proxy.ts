@@ -1,4 +1,4 @@
-import { backendUrl } from "./server";
+import { ADDRESS, backendUrl } from "./server";
 
 function failure(status: number, code: string) {
   return Response.json(
@@ -13,7 +13,6 @@ function failure(status: number, code: string) {
     { status, headers: { "Cache-Control": "no-store" } },
   );
 }
-const ADDRESS = /^[0-9a-fA-F:.]{2,45}$/;
 export async function proxy(
   request: Request,
   path: string,
@@ -55,7 +54,7 @@ export async function proxy(
     const value = request.headers.get(key);
     if (value) headers.set(key, value);
   }
-  if (ADDRESS.test(clientAddress)) headers.set("x-client-ip", clientAddress);
+  if (ADDRESS.test(clientAddress)) headers.set("x-real-ip", clientAddress);
   let body: Uint8Array<ArrayBuffer> | undefined;
   if (!["GET", "HEAD"].includes(request.method)) {
     const maximum =

@@ -1,0 +1,74 @@
+# Levanta en este equipo las mismas imágenes que irán al VPS (guía 02, 2.1 y 2.10).
+# Uso: docker compose -f deploy/deploy-dev/compose.yml up -d --build
+# Migraciones: docker compose -f deploy/deploy-dev/compose.yml run --rm migrate
+services:
+  app:
+    build:
+      context: ../../frontend
+      dockerfile: Dockerfile
+    user: "10001:10001"
+    read_only: true
+    tmpfs: [/tmp]
+    env_file: .env
+    ports:
+      - "127.0.0.1:8000:8000"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:8000/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 15s
+      timeout: 3s
+      retries: 3
+      start_period: 30s
+    depends_on:
+      api:
+        condition: service_healthy
+
+  api:
+    build:
+      context: ../../backend
+      dockerfile: Dockerfile
+    user: "10001:10001"
+    read_only: true
+    tmpfs: [/tmp]
+    env_file: .env
+    volumes:
+      - api-var:/app/var
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=2)"]
+      interval: 15s
+      timeout: 3s
+      retries: 3
+      start_period: 30s
+    depends_on:
+      db:
+        condition: service_healthy
+
+  migrate:
+    profiles: ["migrate"]
+    build:
+      context: ../../backend
+      dockerfile: Dockerfile
+    user: "10001:10001"
+    env_file: .env
+    command: ["alembic", "upgrade", "head"]
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: beront
+      POSTGRES_USER: beront
+      POSTGRES_PASSWORD: beront
+    ports:
+      - "127.0.0.1:5433:5432"
+    volumes:
+      - db-dev:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "beront"]
+      interval: 5s
+      retries: 10
+
+volumes:
+  db-dev:
+  api-var:

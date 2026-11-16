@@ -2,7 +2,7 @@ CREATE OR REPLACE FUNCTION beront_api.catalog_product_add(p jsonb)
 RETURNS jsonb
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = pg_catalog, public, beront_api
+SET search_path = pg_catalog, public, beront_api, pg_temp
 AS $function$
 BEGIN
  INSERT INTO public.products(id,brand_id,name,slug,audience,description_es,description_en,published,archived,sold_out,version)

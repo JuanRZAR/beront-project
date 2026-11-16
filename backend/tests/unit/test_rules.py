@@ -209,6 +209,53 @@ def test_image_normalization(tmp_path):
         store.save(animated)
 
 
+def test_image_limit_accepts_phone_photos_and_rejects_larger_images(tmp_path):
+    store = LocalImageStorage(tmp_path)
+    for size, accepted in (((4032, 3024), True), ((4096, 3072), False)):
+        source = BytesIO()
+        Image.new("RGB", size, "#B8A58A").save(source, "JPEG")
+        source.seek(0)
+        if accepted:
+            store.save(source)
+        else:
+            with pytest.raises(DomainError, match="12,5 megapíxeles"):
+                store.save(source)
+
+
+def test_images_are_processed_one_at_a_time(tmp_path, monkeypatch):
+    from concurrent.futures import ThreadPoolExecutor
+    from threading import Lock
+    from time import sleep
+
+    from beront.modules.catalog.infrastructure import images
+
+    active, peak, guard = 0, 0, Lock()
+    original = images.ImageOps.exif_transpose
+
+    def slow_transpose(image):
+        nonlocal active, peak
+        with guard:
+            active += 1
+            peak = max(peak, active)
+        sleep(0.05)
+        with guard:
+            active -= 1
+        return original(image)
+
+    monkeypatch.setattr(images.ImageOps, "exif_transpose", slow_transpose)
+    store = LocalImageStorage(tmp_path)
+
+    def upload(_):
+        source = BytesIO()
+        Image.new("RGB", (40, 30), "#B8A58A").save(source, "PNG")
+        source.seek(0)
+        return store.save(source)
+
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        assert len(set(pool.map(upload, range(8)))) == 8
+    assert peak == 1
+
+
 @pytest.mark.parametrize("palette", [False, True])
 def test_image_normalization_preserves_transparency_and_pixels(tmp_path, palette):
     store = LocalImageStorage(tmp_path)

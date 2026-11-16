@@ -1,6 +1,6 @@
 CREATE OR REPLACE FUNCTION beront_api.commerce_message_get(p jsonb)
 RETURNS jsonb LANGUAGE sql SECURITY DEFINER
-SET search_path = pg_catalog, public, beront_api
+SET search_path = pg_catalog, public, beront_api, pg_temp
 AS $function$
 SELECT to_jsonb(m) || jsonb_build_object(
  'images', COALESCE((SELECT jsonb_agg(jsonb_build_object('id',a.id,'url',a.url,'name',a.name) ORDER BY i.position)

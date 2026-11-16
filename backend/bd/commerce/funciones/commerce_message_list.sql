@@ -1,6 +1,6 @@
 CREATE OR REPLACE FUNCTION beront_api.commerce_message_list(p jsonb)
 RETURNS jsonb LANGUAGE sql SECURITY DEFINER
-SET search_path = pg_catalog, public, beront_api
+SET search_path = pg_catalog, public, beront_api, pg_temp
 AS $function$
 SELECT COALESCE(jsonb_agg(beront_api.commerce_message_get(jsonb_build_object('id',m.id)) ORDER BY m.position,m.id),'[]'::jsonb)
 FROM public.featured_messages m
